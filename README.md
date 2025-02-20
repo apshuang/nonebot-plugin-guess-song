@@ -78,6 +78,7 @@ _✨ NoneBot 音游猜歌游戏插件 ✨_
 
 ### 资源需求
 💡资源下载：
+
 🟩static文件：[Yuri-YuzuChaN个人云盘](https://share.yuzuchan.moe/d/aria/Resource.zip?sign=LOqwqDVm95dYnkEDYKX2E-VGj0xc_JxrsFnuR1BcvtI=:0)、[百度云盘](https://pan.baidu.com/s/1OxSzz_vSl8YD-Cq_86bWqg?pwd=vnmu)
 内部包括music_data.json、music_alias.json文件，以及mai/cover，是歌曲的信息与别名，以及歌曲的曲绘。
 推荐联合使用[其它maimai插件](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)来动态更新歌曲信息与别名信息。
