@@ -6,65 +6,25 @@
 
 <div align="center">
 
-# nonebot-plugin-template
+# nonebot-plugin-guess-song
 
-_✨ NoneBot 插件简单描述 ✨_
+_✨ NoneBot 音游猜歌游戏插件 ✨_
 
 
 <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/owner/nonebot-plugin-template.svg" alt="license">
+    <img src="https://img.shields.io/github/license/apshuang/nonebot-plugin-guess-song.svg" alt="license">
 </a>
-<a href="https://pypi.python.org/pypi/nonebot-plugin-template">
-    <img src="https://img.shields.io/pypi/v/nonebot-plugin-template.svg" alt="pypi">
+<a href="https://pypi.python.org/pypi/nonebot-plugin-guess-song">
+    <img src="https://img.shields.io/pypi/v/nonebot-plugin-guess-song.svg" alt="pypi">
 </a>
 <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="python">
 
 </div>
 
-这是一个 nonebot2 插件项目的模板库, 你可以直接使用本模板创建你的 nonebot2 插件项目的仓库
-
-<details open>
-<summary>模板库使用方法</summary>
-
-1. 点击 [![start-course](https://user-images.githubusercontent.com/1221423/235727646-4a590299-ffe5-480d-8cd5-8194ea184546.svg)](https://github.com/new?template_owner=A-kirami&template_name=nonebot-plugin-template&owner=%40me&name=nonebot-plugin-&visibility=public) 创建仓库
-2. 在创建好的新仓库中, 在 "Add file" 菜单中选择 "Create new file", 在新文件名处输入`LICENSE`, 此时在右侧会出现一个 "Choose a license template" 按钮, 点击此按钮选择开源协议模板, 然后在最下方提交新文件到主分支
-3. 全局替换`owner`为仓库所有者ID; 全局替换`nonebot-plugin-template`为插件名; 全局替换`nonebot_plugin_template`为包名; 修改 python 徽标中的版本为你插件的运行所需版本
-4. 修改 README 中的插件名和插件描述, 并在下方填充相应的内容
-
-</details>
-
-> [!NOTE]
-> 模板库中自带了一个发布工作流, 你可以使用此工作流自动发布你的插件到 pypi
-
-<details>
-<summary>配置发布工作流</summary>
-
-1. 前往 https://pypi.org/manage/account/#api-tokens 并创建一个新的 API 令牌。创建成功后不要关闭页面，不然你将无法再次查看此令牌。
-2. 在单独的浏览器选项卡或窗口中，打开 [Actions secrets and variables](./settings/secrets/actions) 页面。你也可以在 Settings - Secrets and variables - Actions 中找到此页面。
-3. 点击 New repository secret 按钮，创建一个名为 `PYPI_API_TOKEN` 的新令牌，并从第一步复制粘贴令牌。
-
-</details>
-
-> [!IMPORTANT]
-> 这个发布工作流需要 pyproject.toml 文件, 并且只支持 [PEP 621](https://peps.python.org/pep-0621/) 标准的 pyproject.toml 文件
-
-<details>
-<summary>触发发布工作流</summary>
-从本地推送任意 tag 即可触发。
-
-创建 tag:
-
-    git tag <tag_name>
-
-推送本地所有 tag:
-
-    git push origin --tags
-
-</details>
 
 ## 📖 介绍
 
-这里是插件的详细介绍部分
+一个音游猜歌插件（主要为舞萌DX maimaiDX提供资源），有开字母、猜曲绘、听歌猜曲、谱面猜歌、线索猜歌等游戏
 
 ## 💿 安装
 
@@ -72,7 +32,7 @@ _✨ NoneBot 插件简单描述 ✨_
 <summary>使用 nb-cli 安装</summary>
 在 nonebot2 项目的根目录下打开命令行, 输入以下指令即可安装
 
-    nb plugin install nonebot-plugin-template
+    nb plugin install nonebot-plugin-guess-song
 
 </details>
 
@@ -83,27 +43,27 @@ _✨ NoneBot 插件简单描述 ✨_
 <details>
 <summary>pip</summary>
 
-    pip install nonebot-plugin-template
+    pip install nonebot-plugin-guess-song
 </details>
 <details>
 <summary>pdm</summary>
 
-    pdm add nonebot-plugin-template
+    pdm add nonebot-plugin-guess-song
 </details>
 <details>
 <summary>poetry</summary>
 
-    poetry add nonebot-plugin-template
+    poetry add nonebot-plugin-guess-song
 </details>
 <details>
 <summary>conda</summary>
 
-    conda install nonebot-plugin-template
+    conda install nonebot-plugin-guess-song
 </details>
 
 打开 nonebot2 项目根目录下的 `pyproject.toml` 文件, 在 `[tool.nonebot]` 部分追加写入
 
-    plugins = ["nonebot_plugin_template"]
+    plugins = ["nonebot_plugin_guess_song"]
 
 </details>
 
@@ -113,14 +73,76 @@ _✨ NoneBot 插件简单描述 ✨_
 
 | 配置项 | 必填 | 默认值 | 说明 |
 |:-----:|:----:|:----:|:----:|
-| 配置项1 | 是 | 无 | 配置说明 |
-| 配置项2 | 否 | 无 | 配置说明 |
+| guess_static_resources_path | 是 | 无 | 歌曲信息、曲绘、别名等静态资源路径 |
+| guess_resources_path | 是 | 无 | 音乐文件、谱面文件、猜歌排名记录信息等动态资源路径 |
+
+### 资源需求
+💡资源下载：
+🟩static文件：[Yuri-YuzuChaN个人云盘](https://share.yuzuchan.moe/d/aria/Resource.zip?sign=LOqwqDVm95dYnkEDYKX2E-VGj0xc_JxrsFnuR1BcvtI=:0)、[百度云盘](https://pan.baidu.com/s/1OxSzz_vSl8YD-Cq_86bWqg?pwd=vnmu)
+内部包括music_data.json、music_alias.json文件，以及mai/cover，是歌曲的信息与别名，以及歌曲的曲绘。
+推荐联合使用[其它maimai插件](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)来动态更新歌曲信息与别名信息。
+
+
+🟩动态资源文件（针对听歌猜曲和谱面猜歌）：
+- 听歌猜曲文件（共6.55GB，已切分为五个压缩包，可部分下载）：[百度云盘](https://pan.baidu.com/s/1vVC8p7HDWfczMswOLmE8Og?pwd=gqu3)
+- 谱面猜歌文件（共22.37GB，已划分为按版本聚类，可下载部分版本使用）：[百度云盘](https://pan.baidu.com/s/1kIMeYv46djxJe_p8DMTtfA?pwd=e6sf)
+
+💡资源需求说明：
+最低配置：music_data.json、music_alias.json
+开字母：无需添加其它资源（可以按需添加[“这么难他都会”](https://github.com/apshuang/nonebot-plugin-guess-song/blob/master/so_hard.jpg)的图片资源到/resources/maimai/so_hard.jpg）
+猜曲绘：需要添加mai/cover
+线索猜歌：需要添加mai/cover（如果添加了音乐资源，还会增加歌曲长度作为线索）
+听歌猜曲：需要添加music_guo
+谱面猜歌：需要添加chart_resourses
+
+⚠️可以不下载动态资源， 也可以只下载部分资源（部分歌曲或部分版本），插件也能正常运行，只不过曲库会略微少一些。⚠️
+
+
 
 ## 🎉 使用
 ### 指令表
+详细指令表及其高级用法（比如过滤某个版本、某些等级的歌曲）也可以通过“/猜歌帮助”来查看
 | 指令 | 权限 | 需要@ | 范围 | 说明 |
 |:-----:|:----:|:----:|:----:|:----:|
-| 指令1 | 主人 | 否 | 私聊 | 指令说明 |
-| 指令2 | 群员 | 是 | 群聊 | 指令说明 |
+| /开字母 | 群员 | 否 | 群聊 | 开始开字母游戏 |
+| /(连续)听歌猜曲 | 群员 | 否 | 群聊 | 开始(连续)听歌猜曲游戏 |
+| /(连续)谱面猜歌 | 群员 | 否 | 群聊 | 开始(连续)谱面猜歌游戏 |
+| /(连续)猜曲绘 | 群员 | 否 | 群聊 | 开始(连续)猜曲绘游戏 |
+| /(连续)线索猜歌 | 群员 | 否 | 群聊 | 开始(连续)线索猜歌游戏 |
+| 猜歌 xxx | 群员 | 否 | 群聊 | 根据已知信息猜测歌曲 |
+| 不玩了 | 群员 | 否 | 群聊 | 揭晓当前猜歌的答案 |
+| 停止 | 群员 | 否 | 群聊 | 停止连续猜歌 |
+| /开启/关闭猜歌 xxx | 管理员/群主/主人 | 否 | 群聊 | 开启或禁用某类或全部猜歌游戏 |
+| /猜曲绘配置 xxx | 管理员/群主/主人 | 否 | 群聊 | 进行猜曲绘配置（高斯模糊程度、打乱程度、裁切程度等） |
+| /检查歌曲文件完整性 | 主人 | 否 | 群聊 | 检查听歌猜曲的音乐资源 |
+| /检查谱面完整性 | 主人 | 否 | 群聊 | 检查谱面猜歌的文件资源 |
+
+
+## 📝 功能特点
+
+- ✅ 游戏新颖、有趣
+- ✅ 资源配置要求较低，可按需部分下载
+- ✅ 性能较高，使用preload技术加快谱面加载速度
+- ✅ 框架通用，可扩展性强
+- ✅ 使用简单、可使用别名猜歌，用户猜歌方便
+
+
 ### 效果图
-如果有效果图的话
+![开字母效果图](./docs/open_character_screenshot.png)
+![猜曲绘效果图](./docs/guess_cover_screenshot.png)
+![谱面猜歌效果图](./docs/guess_chart_screenshot.png)
+
+
+## 🙏 鸣谢
+
+- [maimai插件](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx) - maimai插件、static资源下载
+- [MajdataEdit](https://github.com/LingFeng-bbben/MajdataEdit) - maimai谱面编辑器
+- [MajdataEdit_BatchOutput_Tool](https://github.com/apshuang/MajdataEdit_BatchOutput_Tool) - 用于批量导出maimai谱面视频资源
+- [NoneBot2](https://github.com/nonebot/nonebot2) - 跨平台 Python 异步机器人框架
+
+
+## 📞 联系
+
+| 猜你字母Bot游戏群（欢迎加群游玩）  | QQ群：925120177 |
+| ---------------- | ---------------- |
+
