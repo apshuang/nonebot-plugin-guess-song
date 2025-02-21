@@ -70,6 +70,7 @@ _✨ NoneBot 音游猜歌游戏插件 ✨_
 ## ⚙️ 配置
 
 ⚠️⚠️⚠️请务必注意，若需要使用听歌猜曲以及谱面猜歌，必须先下载并配置ffmpeg⚠️⚠️⚠️
+
 ⚠️⚠️⚠️若需要使用谱面猜歌，请安装moviepy==1.0.3（最新版本无法使用）⚠️⚠️⚠️
 
 在 nonebot2 项目的`.env`文件中添加下表中的必填配置
@@ -87,14 +88,14 @@ GUESS_RESOURCES_PATH="E:\\Bot\\CainithmBot\\resources"
 
 
 ### 资源需求
-🟩**static文件**：[Yuri-YuzuChaN个人云盘](https://share.yuzuchan.moe/d/aria/Resource.zip?sign=LOqwqDVm95dYnkEDYKX2E-VGj0xc_JxrsFnuR1BcvtI=:0)、[百度云盘](https://pan.baidu.com/s/1OxSzz_vSl8YD-Cq_86bWqg?pwd=vnmu)
+🟩**static文件**：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/Static-resources)、[百度云盘](https://pan.baidu.com/s/1OxSzz_vSl8YD-Cq_86bWqg?pwd=vnmu)
 内部包括music_data.json、music_alias.json文件，以及mai/cover，是歌曲的信息与别名，以及歌曲的曲绘。
 推荐联合使用[其它maimai插件](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)来动态更新歌曲信息与别名信息。
 
 
 🟩**动态资源文件**（针对听歌猜曲和谱面猜歌，可按需下载）：
-- 听歌猜曲文件（共6.55GB，已切分为五个压缩包，可部分下载）：[百度云盘](https://pan.baidu.com/s/1vVC8p7HDWfczMswOLmE8Og?pwd=gqu3)
-- 谱面猜歌文件（共22.37GB，已划分为按版本聚类，可下载部分版本使用）：[百度云盘](https://pan.baidu.com/s/1kIMeYv46djxJe_p8DMTtfA?pwd=e6sf)
+- 听歌猜曲文件（共6.55GB，已切分为五个压缩包，可部分下载）：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/guess_listen-resources)、[百度云盘](https://pan.baidu.com/s/1vVC8p7HDWfczMswOLmE8Og?pwd=gqu3)
+- 谱面猜歌文件（共22.37GB，已划分为按版本聚类，可下载部分版本使用）：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/guess_chart-resources)、[百度云盘](https://pan.baidu.com/s/1kIMeYv46djxJe_p8DMTtfA?pwd=e6sf)
 在动态资源路径guess_static_resources_path下，建立music_guo文件夹，将听歌猜曲文件放入内；建立chart_resources文件夹，将谱面猜歌资源文件放入内（保持每个版本一个文件夹）。
 
 💡**资源需求说明**：
@@ -128,13 +129,14 @@ GUESS_RESOURCES_PATH="E:\\Bot\\CainithmBot\\resources"
 | /检查谱面完整性 | 主人 | 否 | 群聊 | 检查谱面猜歌的文件资源 |
 
 
-## 📝 功能特点
+## 📝 项目特点
 
 - ✅ 游戏新颖、有趣
 - ✅ 资源配置要求较低，可按需部分下载
 - ✅ 性能较高，使用preload技术加快谱面加载速度
 - ✅ 框架通用，可扩展性强
 - ✅ 使用简单、可使用别名猜歌，用户猜歌方便
+- ✅ 贡献了谱面猜歌数据集，可以用于制作猜歌视频
 
 
 ### 效果图
