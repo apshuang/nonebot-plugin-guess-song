@@ -11,6 +11,7 @@ from .config import *
 
 
 scheduler = require('nonebot_plugin_apscheduler')
+require("nonebot_plugin_localstore")
 
 from nonebot_plugin_apscheduler import scheduler
 
@@ -54,6 +55,8 @@ async def _(bot: Bot, event: GroupMessageEvent):
 
 @guess_random.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)
     game_name = "random"
     if check_game_disable(group_id, game_name):
@@ -70,6 +73,8 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
 
 @continuous_guess_random.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)
     game_name = "random"
     if check_game_disable(group_id, game_name):
@@ -282,7 +287,7 @@ async def send_top_three_schedule():
         group_id = str(group_info.get("group_id"))
         
         # 如果不需要给用户加分（仅展示答对题数与排名），可以将这里的isaddcredit设为False
-        await send_top_three(bot, group_id, isaddcredit=False)
+        await send_top_three(bot, group_id, isaddcredit=True)
 
 
 @scheduler.scheduled_job('cron', hour=00, minute=00)

@@ -88,6 +88,8 @@ def open_character_rank_message(group_id):
 @guess_character_request.handle()
 async def guess_request_handler(matcher: Matcher, event: GroupMessageEvent, args: Message = CommandArg()):
     # 启动游戏
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)
     game_name = "open_character"
     if check_game_disable(group_id, game_name):

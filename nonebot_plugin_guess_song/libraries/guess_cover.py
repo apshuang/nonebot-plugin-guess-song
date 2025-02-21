@@ -125,6 +125,8 @@ async def cover_open_song_handler(matcher, song_name, group_id, user_id, ignore_
 
 @continuous_guess_cover.handle()
 async def continuous_guess_cover_handler(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     gid = str(event.group_id)
     game_name = "cover"
     if check_game_disable(gid, game_name):
@@ -146,6 +148,8 @@ async def continuous_guess_cover_handler(event: GroupMessageEvent, matcher: Matc
 
 @guess_cover.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     gid = str(event.group_id)
     game_name = "cover"
     if check_game_disable(gid, game_name):

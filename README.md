@@ -77,37 +77,75 @@ _✨ NoneBot 音游猜歌游戏插件 ✨_
 
 | 配置项 | 必填 | 默认值 | 说明 |
 |:-----:|:----:|:----:|:----:|
-| guess_static_resources_path | 是 | 无 | 歌曲信息、曲绘、别名等静态资源路径 |
-| guess_resources_path | 是 | 无 | 音乐文件、谱面文件、猜歌排名记录信息等动态资源路径 |
-
-比如：在.env.dev文件中添加以下两行：
-```dotenv
-GUESS_STATIC_RESOURCES_PATH="E:\\Bot\\CainithmBot\\static"
-GUESS_RESOURCES_PATH="E:\\Bot\\CainithmBot\\resources"
-```
+| character_filter_japenese | 否 | True | 指示开字母游戏中，是否需要过滤掉含有日文字符的歌曲 |
 
 
 ### 资源需求
-🟩**static文件**：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/Static-resources)、[百度云盘](https://pan.baidu.com/s/1OxSzz_vSl8YD-Cq_86bWqg?pwd=vnmu)
+本插件需要一些资源（歌曲信息等）才能够正常使用，以下是说明及下载方法、配置教程。
+
+💡**资源需求说明**：
+最低配置（所有游戏都需要）：music_data.json、music_alias.json（在后文的static压缩包中）
+开字母：无需添加其它资源（可以按需添加[“这么难他都会”](https://github.com/apshuang/nonebot-plugin-guess-song/blob/master/so_hard.jpg)的图片资源到/resources/maimai/so_hard.jpg）
+猜曲绘：需要添加mai/cover（也在后文的static压缩包中）
+线索猜歌：需要添加mai/cover（如果添加了音乐资源，还会增加歌曲长度作为线索）
+听歌猜曲：需要添加music_guo——在动态资源路径/resources下，建立music_guo文件夹，将听歌猜曲文件放入内；
+谱面猜歌：需要添加chart_resources——在动态资源路径/resources下，建立chart_resources文件夹，将谱面猜歌资源文件放入内（保持每个版本一个文件夹）。
+
+
+🟩**static文件**：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/Static-resources)、[百度云盘](https://pan.baidu.com/s/1K5d7MqcNh83gh9yerfgGPg?pwd=fiwp)
 内部包括music_data.json、music_alias.json文件，以及mai/cover，是歌曲的信息与别名，以及歌曲的曲绘。
 推荐联合使用[其它maimai插件](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx)来动态更新歌曲信息与别名信息。
 
 
-🟩**动态资源文件**（针对听歌猜曲和谱面猜歌，可按需下载）：
+🟩**动态资源文件**（针对听歌猜曲和谱面猜歌，可**按需下载**）：
 - 听歌猜曲文件（共6.55GB，已切分为五个压缩包，可部分下载）：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/guess_listen-resources)、[百度云盘](https://pan.baidu.com/s/1vVC8p7HDWfczMswOLmE8Og?pwd=gqu3)
 - 谱面猜歌文件（共22.37GB，已划分为按版本聚类，可下载部分版本使用）：[GitHub Releases下载](https://github.com/apshuang/nonebot-plugin-guess-song/releases/tag/guess_chart-resources)、[百度云盘](https://pan.baidu.com/s/1kIMeYv46djxJe_p8DMTtfA?pwd=e6sf)
-在动态资源路径guess_static_resources_path下，建立music_guo文件夹，将听歌猜曲文件放入内；建立chart_resources文件夹，将谱面猜歌资源文件放入内（保持每个版本一个文件夹）。
+在动态资源路径/resources下，建立music_guo文件夹，将听歌猜曲文件放入内；建立chart_resources文件夹，将谱面猜歌资源文件放入内（保持每个版本一个文件夹）。
+⚠️可以不下载动态资源， 也可以只下载部分动态资源（部分歌曲或部分版本），插件也能正常运行，只不过曲库会略微少一些。⚠️
 
-💡**资源需求说明**：
-最低配置：music_data.json、music_alias.json
-开字母：无需添加其它资源（可以按需添加[“这么难他都会”](https://github.com/apshuang/nonebot-plugin-guess-song/blob/master/so_hard.jpg)的图片资源到/resources/maimai/so_hard.jpg）
-猜曲绘：需要添加mai/cover
-线索猜歌：需要添加mai/cover（如果添加了音乐资源，还会增加歌曲长度作为线索）
-听歌猜曲：需要添加music_guo——在动态资源路径guess_static_resources_path下，建立music_guo文件夹，将听歌猜曲文件放入内；
-谱面猜歌：需要添加chart_resources——在动态资源路径guess_static_resources_path下，建立chart_resources文件夹，将谱面猜歌资源文件放入内（保持每个版本一个文件夹）。
+### 资源目录配置教程
+<details>
+  <summary>点击展开查看项目目录</summary>
 
-⚠️可以不下载动态资源， 也可以只下载部分资源（部分歌曲或部分版本），插件也能正常运行，只不过曲库会略微少一些。⚠️
+  ```plaintext
+  CainithmBot/
+  ├── static/
+  │   ├── mai/
+  │   │   └── cover/
+  │   ├── music_data.json  # 歌曲信息
+  │   ├── music_alias.json  # 歌曲别名信息
+  │   └── SourceHanSansSC-Bold.otf  # 发送猜歌帮助所需字体
+  ├── resources/
+  │   ├── music_guo/  # 国服歌曲音乐文件
+  │   │   ├── 8.mp3
+  │   │   └── ...
+  │   ├── chart_resources/  # 谱面猜歌资源文件
+  │   │   ├── 01. maimai/  # 内部需按版本分开各个文件夹
+  │   │   │   ├── mp3/
+  │   │   │   └── mp4/
+  │   │   ├── 02. maimai PLUS/
+  │   │   │   ├── mp3/
+  │   │   │   └── mp4/
+  │   │   └── ...
+  │   │   ├── remaster/
+  │   │   │   ├── mp3/
+  │   │   │   └── mp4/
+  └── ...
 
+  ```
+</details>
+
+
+根据上面的项目目录，我们可以看到，在某个存放资源的根目录（假设这个根目录为`E:/Bot/CainithmBot`）下面，有一个static文件夹和一个resources文件夹，只需要按照上面的指示，将对应的资源放到对应文件夹目录下即可。
+同时，本插件使用了nonebot-plugin-localstore插件进行资源管理，所以，比较建议您为本插件单独设置一个资源根目录（因为资源较多），我们继续假设这个资源根目录为`E:/Bot/CainithmBot`，那么您需要在`.env`配置文件中添加以下配置：
+```dotenv
+LOCALSTORE_PLUGIN_DATA_DIR='
+{
+  "nonebot_plugin_guess_song": "E:/Bot/CainithmBot"
+}   
+'
+```
+如果您希望直接使用一个全局的资源根目录，则直接通过`nb localstore`，查看全局的Data Dir，并将static和resources文件夹置于这个Data Dir下，就可以使用了！
 
 
 ## 🎉 使用

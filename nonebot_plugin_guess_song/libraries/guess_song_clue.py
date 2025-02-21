@@ -79,6 +79,8 @@ async def get_clues(music: Music):
 
 @guess_clue.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)
     game_name = "clue"
     if check_game_disable(group_id, game_name):
@@ -89,6 +91,8 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
 
 @continuous_guess_clue.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+    if len(total_list.music_list) == 0:
+        await matcher.finish("本插件还没有配置好static资源噢，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)
     game_name = "clue"
     if check_game_disable(group_id, game_name):

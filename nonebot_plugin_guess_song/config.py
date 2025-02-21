@@ -1,26 +1,37 @@
 from pathlib import Path
 from pydantic import BaseModel
-from nonebot import get_driver, get_plugin_config
 from textwrap import dedent
-driver = get_driver()
+
+from nonebot import get_plugin_config
+from nonebot.plugin import require
+
+require("nonebot_plugin_localstore")
+
+import nonebot_plugin_localstore as store
+
 
 class Config(BaseModel):
-    guess_static_resources_path: Path
-    guess_resources_path: Path
+    character_filter_japenese: bool = True
 
 game_config = get_plugin_config(Config)
 
-music_cover_path: Path = game_config.guess_static_resources_path / "mai/cover"
-music_info_path: Path = game_config.guess_static_resources_path / "music_data.json"
-music_alias_path: Path = game_config.guess_static_resources_path / "music_alias.json"
+plugin_data_dir: Path = store.get_plugin_data_dir()
 
-user_info_path: Path = game_config.guess_resources_path / "user_info.json"  # 基本只用于用户加分
-game_data_path: Path = game_config.guess_resources_path / "game_data.json"  # 需要记录用户猜对的数量以及每个群猜曲绘的配置数据
+guess_static_resources_path: Path = plugin_data_dir / "static"
+guess_resources_path: Path = plugin_data_dir / "resources"
 
-game_pic_path: Path = game_config.guess_resources_path / "maimai"
-music_file_path: Path = game_config.guess_resources_path / "music_guo"
-chart_file_path: Path = game_config.guess_resources_path / "chart_resources"
-chart_preload_path: Path = game_config.guess_resources_path / "chart_preload"
+music_cover_path: Path = guess_static_resources_path / "mai/cover"
+music_info_path: Path = guess_static_resources_path / "music_data.json"
+music_alias_path: Path = guess_static_resources_path / "music_alias.json"
+font_path: Path = guess_static_resources_path / "SourceHanSansSC-Bold.otf"
+
+user_info_path: Path = guess_resources_path / "user_info.json"  # 基本只用于用户加分
+game_data_path: Path = guess_resources_path / "game_data.json"  # 需要记录用户猜对的数量以及每个群猜曲绘的配置数据
+
+game_pic_path: Path = guess_resources_path / "maimai"
+music_file_path: Path = guess_resources_path / "music_guo"
+chart_file_path: Path = guess_resources_path / "chart_resources"
+chart_preload_path: Path = guess_resources_path / "chart_preload"
 
 
 point_per_credit_dict: dict[str, int] = {

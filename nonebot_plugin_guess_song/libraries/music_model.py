@@ -105,13 +105,18 @@ async def main():
 
     global total_list, alias_dict, filter_list
 
-    with open(music_info_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-        total_list = MusicList(data)
-        
-    with open(music_alias_path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-        total_list.init_alias(data)
+    def load_data(data_path):
+        try:
+            with open(data_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {}
+
+    music_data = load_data(music_info_path)
+    total_list = MusicList(music_data)
+    
+    alias_data = load_data(music_alias_path)
+    total_list.init_alias(alias_data)
 
     alias_dict = {}
     for i in range(len(total_list.music_list)):
@@ -147,7 +152,8 @@ async def main():
     # 选出没有日文字的歌曲，作为开字母的曲库（因为如果曲名有日文字很难开出来）
     filter_list = []
     for music in total_list.music_list:
-        if not contains_japanese(music.title):
+        if (not game_config.character_filter_japenese) or (not contains_japanese(music.title)):
+            # 如果不过滤那就都可以加，如果要过滤，那就不含有日文才能加
             filter_list.append(music)
     
 gameplay_list = {}
