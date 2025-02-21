@@ -281,8 +281,8 @@ async def send_top_three_schedule():
     for group_info in group_list:
         group_id = str(group_info.get("group_id"))
         
-        # 如果不需要给用户加分（仅展示答对题数与排名），可以将这里的isaddcredit设为True
-        await send_top_three(bot, group_id, isaddcredit=True)
+        # 如果不需要给用户加分（仅展示答对题数与排名），可以将这里的isaddcredit设为False
+        await send_top_three(bot, group_id, isaddcredit=False)
 
 
 @scheduler.scheduled_job('cron', hour=00, minute=00)
