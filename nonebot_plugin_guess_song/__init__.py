@@ -9,9 +9,7 @@ from nonebot.plugin import PluginMetadata, require
 from .libraries import *
 from .config import *
 
-
 scheduler = require('nonebot_plugin_apscheduler')
-require("nonebot_plugin_localstore")
 
 from nonebot_plugin_apscheduler import scheduler
 
@@ -22,6 +20,7 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     config=Config,
     homepage="https://github.com/apshuang/nonebot-plugin-guess-song",
+    supported_adapters={"~onebot.v11"},
 )
 
 
