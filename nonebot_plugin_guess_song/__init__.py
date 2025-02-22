@@ -16,7 +16,7 @@ require("nonebot_plugin_localstore")
 from nonebot_plugin_apscheduler import scheduler
 
 __plugin_meta__ = PluginMetadata(
-    name="GuessLetter",
+    name="maimai猜歌小游戏",
     description="音游猜歌游戏插件，提供开字母、听歌猜曲、谱面猜歌、猜曲绘、线索猜歌等游戏",
     usage="/猜歌帮助",
     type="application",
