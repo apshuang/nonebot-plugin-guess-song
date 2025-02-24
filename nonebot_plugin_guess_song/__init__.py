@@ -9,7 +9,8 @@ from nonebot.plugin import PluginMetadata, require
 from .libraries import *
 from .config import *
 
-scheduler = require('nonebot_plugin_apscheduler')
+
+require('nonebot_plugin_apscheduler')
 
 from nonebot_plugin_apscheduler import scheduler
 
@@ -286,7 +287,7 @@ async def send_top_three_schedule():
         group_id = str(group_info.get("group_id"))
         
         # 如果不需要给用户加分（仅展示答对题数与排名），可以将这里的isaddcredit设为False
-        await send_top_three(bot, group_id, isaddcredit=True)
+        await send_top_three(bot, group_id, isaddcredit=game_config.everyday_is_add_credits)
 
 
 @scheduler.scheduled_job('cron', hour=00, minute=00)

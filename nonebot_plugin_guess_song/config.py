@@ -11,7 +11,8 @@ import nonebot_plugin_localstore as store
 
 
 class Config(BaseModel):
-    character_filter_japenese: bool = True
+    character_filter_japenese: bool = True  # 开字母游戏是否需要过滤掉含日文字符的歌曲
+    everyday_is_add_credits: bool = False  # 每天给猜歌答对的用户加积分
 
 game_config = get_plugin_config(Config)
 
