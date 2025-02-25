@@ -251,6 +251,16 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         sub_path_name = f"{str(event.group_id)}_{'_'.join(params)}"
         param_charts_pool.setdefault(sub_path_name, [])
         charts_pool = param_charts_pool[sub_path_name]
+        
+        # 先进行检验，查看旧的charts_pool里的文件是否都还存在（未被删除）
+        charts_already_old = []
+        for (question_clip_path, answer_clip_path) in charts_pool:
+            if not os.path.isfile(question_clip_path) or not os.path.isfile(answer_clip_path):
+                charts_already_old.append((question_clip_path, answer_clip_path))
+        for (question_clip_path, answer_clip_path) in charts_already_old:
+            charts_pool.remove((question_clip_path, answer_clip_path))
+            print(f"删除了过时的谱面：{question_clip_path}")
+            
         make_param_chart_task = asyncio.create_task(make_param_chart_video(group_id, params))
         await matcher.send("使用带参数的谱面猜歌，如果猜得太快可能会导致谱面文件来不及制作噢，请稍微耐心等待一下")
     
