@@ -87,6 +87,7 @@ async def make_answer_video(video_file, audio_file, music_id, output_folder, sta
     # 使用异步线程来处理视频
     await asyncio.to_thread(process_video, answer_file, answer_clip_path, start_time, duration)
 
+    await asyncio.sleep(2)  # 需要先等待2秒之后再删除（等待进程释放文件的读写锁）（在moviepy==1.0.2才有该需要，在moviepy==1.0.3版本不必等待也可以）
     # 删除文件（可以保留同步操作）
     os.remove(answer_file)  # 删掉完整的答案文件（只发送前面猜的片段）
     loading_clip_list.remove(answer_clip_path)  # 解除保护
