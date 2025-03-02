@@ -15,9 +15,9 @@ from nonebot.params import CommandArg
 
 guess_cover_config_dict = {}
 
-continuous_guess_cover = on_command('连续猜曲绘')
-guess_cover = on_command('猜曲绘')
-guess_cover_config = on_command('猜曲绘配置', permission=SUPERUSER | GROUP_ADMIN | GROUP_OWNER)
+continuous_guess_cover = on_command('连续猜曲绘', priority=5)
+guess_cover = on_command('猜曲绘', priority=5)
+guess_cover_config = on_command('猜曲绘配置', permission=SUPERUSER | GROUP_ADMIN | GROUP_OWNER, priority=5)
 
 
 def apply_gray(im: Image.Image, gray) -> Image.Image:

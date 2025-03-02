@@ -196,7 +196,7 @@ def load_game_data_json(gid: str):
     return data
 
 async def isplayingcheck(gid, matcher: Matcher):
-    gid = int(gid)
+    gid = str(gid)
     if continuous_stop.get(gid) is not None:
         await matcher.finish(f"当前正在运行连续猜歌，可以发送\"停止\"来结束连续猜歌", reply_message=True)
     if gameplay_list.get(gid) is not None:
@@ -372,7 +372,7 @@ def find_charter(name: str):
     return [music.id for music in music_data]
 
 def text_to_image(text: str) -> Image.Image:
-    font = ImageFont.truetype(str(game_config.guess_static_resources_path / "SourceHanSansSC-Bold.otf"), 24)
+    font = ImageFont.truetype(str(guess_static_resources_path / "SourceHanSansSC-Bold.otf"), 24)
     padding = 10
     margin = 4
     lines = text.strip().split('\n')

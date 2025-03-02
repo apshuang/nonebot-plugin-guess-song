@@ -13,8 +13,8 @@ from nonebot.permission import SUPERUSER
 
 
 guess_listen = on_command("听歌猜曲", aliases={"听歌辩曲"}, priority=5)    
-continuous_guess_listen = on_command('连续听歌猜曲')
-check_listen_file_completeness = on_command("检查歌曲文件完整性", permission=SUPERUSER)
+continuous_guess_listen = on_command('连续听歌猜曲', priority=5)
+check_listen_file_completeness = on_command("检查歌曲文件完整性", permission=SUPERUSER, priority=5)
 
 listen_total_list: List[Music] = []
 

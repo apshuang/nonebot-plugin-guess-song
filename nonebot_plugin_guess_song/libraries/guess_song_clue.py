@@ -14,7 +14,7 @@ from nonebot.params import CommandArg
 
 
 guess_clue = on_command("线索猜歌", aliases={"猜歌"}, priority=5)    
-continuous_guess_clue = on_command('连续线索猜歌')
+continuous_guess_clue = on_command('连续线索猜歌', priority=5)
 
 async def pic(path: str) -> Image.Image:
     """裁切曲绘"""

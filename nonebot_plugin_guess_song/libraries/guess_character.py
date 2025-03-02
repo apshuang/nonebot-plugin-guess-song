@@ -9,7 +9,7 @@ from nonebot.adapters.onebot.v11 import GroupMessageEvent
 from nonebot.params import Startswith, CommandArg
 
 
-guess_character_request = on_command("开字母", aliases = {"猜字母"})
+guess_character_request = on_command("开字母", aliases = {"猜字母"}, priority=5)
 guess_open = on_startswith("开", priority=5)
 
 
