@@ -6,6 +6,7 @@ import base64
 from PIL import Image
 from typing import Union, Optional
 import random
+import subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 from .music_model import *
@@ -155,7 +156,8 @@ def load_game_data_json(gid: str):
             "open_character": {},
             "cover": {},
             "clue": {},
-            "chart": {}
+            "chart": {},
+            "note": {}
         },
         "game_enable": {
             "listen": True,
@@ -163,7 +165,8 @@ def load_game_data_json(gid: str):
             "cover": True,
             "clue": True,
             "chart": True,
-            "random": True
+            "random": True,
+            "note": True
         }
     })
     data[gid].setdefault('config', {
@@ -178,7 +181,8 @@ def load_game_data_json(gid: str):
             "open_character": {},
             "cover": {},
             "clue": {},
-            "chart": {}
+            "chart": {},
+            "note": {}
         })
     data[gid].setdefault('game_enable', {
             "listen": True,
@@ -186,13 +190,27 @@ def load_game_data_json(gid: str):
             "cover": True,
             "clue": True,
             "chart": True,
-            "random": True
+            "random": True,
+            "note": True
         })
+    data[gid]['config'].setdefault('gauss', 10)
+    data[gid]['config'].setdefault('cut', 0.5)
+    data[gid]['config'].setdefault('shuffle', 0.1)
+    data[gid]['config'].setdefault('gray', 0.8)
+    data[gid]['config'].setdefault('transpose', False)
     data[gid]['rank'].setdefault("listen", {})
     data[gid]['rank'].setdefault("open_character", {})
     data[gid]['rank'].setdefault("cover", {})
     data[gid]['rank'].setdefault("clue", {})
     data[gid]['rank'].setdefault("chart", {})
+    data[gid]['rank'].setdefault("note", {})
+    data[gid]['game_enable'].setdefault("listen", True)
+    data[gid]['game_enable'].setdefault("open_character", True)
+    data[gid]['game_enable'].setdefault("cover", True)
+    data[gid]['game_enable'].setdefault("clue", True)
+    data[gid]['game_enable'].setdefault("chart", True)
+    data[gid]['game_enable'].setdefault("random", True)
+    data[gid]['game_enable'].setdefault("note", True)
     return data
 
 async def isplayingcheck(gid, matcher: Matcher):
@@ -394,6 +412,27 @@ def to_bytes_io(text: str) -> BytesIO:
     text_to_image(text).save(bio, format='PNG')
     bio.seek(0)
     return bio
+
+
+def seconds_to_hms(seconds: int) -> str:
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02}:{minutes:02}:{secs:02}"
+
+
+def get_video_duration(video_path):
+    cmd = [
+        "ffprobe", 
+        "-v", "error", 
+        "-select_streams", "v:0", 
+        "-show_entries", "format=duration", 
+        "-of", "json", 
+        video_path
+    ]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    duration_info = json.loads(result.stdout)
+    return int(float(duration_info["format"]["duration"])) if "format" in duration_info else None
 
 
 global_game_data = load_data(game_data_path)

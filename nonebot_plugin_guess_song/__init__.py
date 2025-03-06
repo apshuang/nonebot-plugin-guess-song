@@ -63,13 +63,17 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         await matcher.finish(f"本群禁用了{game_alias_map[game_name]}游戏，请联系管理员使用“/开启猜歌 {game_alias_map[game_name]}”来开启游戏吧！")
     params = args.extract_plain_text().strip().split()
     await isplayingcheck(group_id, matcher)
-    choice = random.randint(1, 3)
+    choice = random.randint(1, 4)
     if choice == 1:
         await guess_cover_handler(group_id, matcher, params)
     elif choice == 2:
         await clue_guess_handler(group_id, matcher, params)
     elif choice == 3:
         await listen_guess_handler(group_id, matcher, params)
+    elif choice == 4:
+        await guess_chart_request(event, matcher, args)
+    elif choice == 5:
+        await note_guess_handler(group_id, matcher, params)
 
 @continuous_guess_random.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
@@ -85,17 +89,63 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         await matcher.finish(fault_tips, reply_message=True)
     await matcher.send('连续随机猜歌已开启，发送\"停止\"以结束')
     continuous_stop[group_id] = 1
+    
+    charts_pool = None
+    # 此处开始preload一些谱面（如果是有参数的）
+    if len(params) != 0:
+        # 有参数的连续谱面猜歌
+        valid_music = filter_random(chart_total_list, params, 10)  # 至少需要有10首歌，不然失去“猜”的价值
+        if not valid_music:
+            continuous_stop.pop(group_id)
+            await matcher.finish(fault_tips)
+            
+        groupID_params_map[group_id] = params
+        sub_path_name = f"{str(event.group_id)}_{'_'.join(params)}"
+        param_charts_pool.setdefault(sub_path_name, [])
+        charts_pool = param_charts_pool[sub_path_name]
+        
+        # 先进行检验，查看旧的charts_pool里的文件是否都还存在（未被删除）
+        charts_already_old = []
+        for (question_clip_path, answer_clip_path) in charts_pool:
+            if not os.path.isfile(question_clip_path) or not os.path.isfile(answer_clip_path):
+                charts_already_old.append((question_clip_path, answer_clip_path))
+        for (question_clip_path, answer_clip_path) in charts_already_old:
+            charts_pool.remove((question_clip_path, answer_clip_path))
+            print(f"删除了过时的谱面：{question_clip_path}")
+        make_param_chart_task = asyncio.create_task(make_param_chart_video(group_id, params))
+    else:
+        charts_pool = general_charts_pool
+    
+    
     while continuous_stop.get(group_id):
         if gameplay_list.get(group_id) is None:
-            choice = random.randint(1, 3)
+            choice = random.randint(1, 4)
             if choice == 1:
                 await guess_cover_handler(group_id, matcher, params)
             elif choice == 2:
                 await clue_guess_handler(group_id, matcher, params)
             elif choice == 3:
                 await listen_guess_handler(group_id, matcher, params)
+            elif choice == 4:
+                for i in range(30):
+                    if len(charts_pool) > 0:
+                        break
+                    await asyncio.sleep(1)
+                if len(charts_pool) == 0:
+                    continuous_stop.pop(group_id)
+                    if groupID_params_map.get(group_id):
+                        groupID_params_map.pop(group_id)
+                    await matcher.finish("bot主的电脑太慢啦，过了30秒还没有一个谱面制作出来！建议vivo50让我换电脑！", reply_message=True)
+                (question_clip_path, answer_clip_path) = charts_pool.pop(random.randint(0, len(charts_pool) - 1))
+                await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path)
+                await asyncio.sleep(2)
+            elif choice == 5:
+                await note_guess_handler(group_id, matcher, params)
+                await asyncio.sleep(2)
         if continuous_stop[group_id] > 3:
             continuous_stop.pop(group_id)
+            if groupID_params_map.get(group_id):
+                groupID_params_map.pop(group_id)
             await matcher.finish('没人猜了？ 那我下班了。')
         await asyncio.sleep(1)
 
@@ -110,6 +160,8 @@ async def open_song_dispatcher(matcher: Matcher, song_name, user_id, group_id, i
         await clue_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
     elif gameplay_list.get(group_id).get("chart"):
         await chart_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
+    elif gameplay_list.get(group_id).get("note"):
+        await note_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
 
 @open_song.handle()
 async def open_song_handler(event: GroupMessageEvent, matcher: Matcher, start: str = Startswith()):
@@ -179,7 +231,24 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
             await matcher.send(MessageSegment.video(f"file://{answer_clip_path}"))
             os.remove(answer_clip_path)
             charts_save_list.remove(answer_clip_path)  # 发完了就可以解除保护了
-            
+        elif now_playing_game == "note":
+            (answer_music, start_time) = gameplay_list.get(group_id).get(now_playing_game)
+            random_music_id = answer_music.id
+            is_remaster = False
+            if int(random_music_id) > 500000:
+                # 是白谱，需要找回原始music对象
+                random_music_id = str(int(random_music_id) % 500000)
+                is_remaster = True
+            random_music = total_list.by_id(random_music_id)
+            gameplay_list.pop(group_id)
+            await matcher.send(
+                MessageSegment.text(f'很遗憾，你没有猜到答案，正确的答案是：\n') + song_txt(random_music, is_remaster) + MessageSegment.text('\n\n。。30秒都坚持不了吗')
+                ,reply_message=True)
+            answer_input_path = id_mp3_file_map.get(answer_music.id)  # 这个是旧的id，即白谱应该找回白谱的id
+            answer_output_path: Path = guess_resources_path / f"{group_id}_{start_time}_answer.mp3"
+            await asyncio.to_thread(make_note_sound, answer_input_path, start_time, answer_output_path)
+            await matcher.send(MessageSegment.record(f"file://{answer_output_path}"))
+            os.remove(answer_output_path)
 
 @stop_continuous.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher):
@@ -220,8 +289,9 @@ async def send_top_three(bot, group_id, isaddcredit = False, is_force = False):
     cover_msg = cover_rank_message(group_id)
     clue_msg = clue_rank_message(group_id)
     chart_msg = chart_rank_message(group_id)
+    note_msg = note_rank_message(group_id)
     
-    origin_messages = [char_msg, listen_msg, cover_msg, clue_msg, chart_msg]
+    origin_messages = [char_msg, listen_msg, cover_msg, clue_msg, chart_msg, note_msg]
     if isaddcredit:
         origin_messages.append(add_credit_message(group_id))
     if is_force:
@@ -294,5 +364,5 @@ async def send_top_three_schedule():
 async def reset_game_data():
     data = load_data(game_data_path)
     for gid in data.keys():
-        data[gid]['rank'] = {"listen": {}, "open_character": {},"cover": {}, "clue": {}, "chart": {}}
+        data[gid]['rank'] = {"listen": {}, "open_character": {},"cover": {}, "clue": {}, "chart": {}, "note": {}}
     save_game_data(data, game_data_path)

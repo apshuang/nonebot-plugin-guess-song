@@ -4,7 +4,6 @@ import random
 import shutil
 import asyncio
 import subprocess
-from moviepy.editor import VideoFileClip
 
 from .utils import *
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, continuous_stop
@@ -45,26 +44,50 @@ guess_chart = on_command("看谱猜歌", aliases={"谱面猜歌"}, priority=5)
 continuous_guess_chart = on_command('连续谱面猜歌', priority=5)
 check_chart_file_completeness = on_command("检查谱面完整性", permission=SUPERUSER, priority=5)
 
+
+def cut_video(input_path, output_path, start_time):
+    input_path = str(input_path)
+    output_path = str(output_path)
+    command = [
+        "ffmpeg",
+        "-ss", seconds_to_hms(start_time),
+        "-i", input_path,
+        "-strict", "experimental",
+        "-c:v", "libx264",   # Copy the video stream without re-encoding
+        "-crf", "23",
+        "-ar", "44100",  # 这个一定要加，因为原本是11025hz的采样率，发到qq有部分用户会出现卡顿的情况
+        "-t", str(CLIP_DURATION),
+        output_path
+    ]
+    try:
+        print("Cutting video...")
+        subprocess.run(command, check=True)
+        print(f"Cutting completed. File saved as '{output_path}'.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during cutting: {e}")
+    except Exception as ex:
+        print(f"An unexpected error occurred: {ex}")
+    
+
 def random_video_clip(input_path, duration, music_id, output_folder):
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"输入文件不存在: {input_path}")
     os.makedirs(output_folder, exist_ok=True)
     
-    with VideoFileClip(input_path) as video:
-        video_duration = video.duration  # 视频总时长
-        if duration > video_duration - 15:
-            raise ValueError(f"截取时长不能超过视频总时长减去{15 + duration}秒")
+    video_duration = get_video_duration(input_path)
+    if duration > video_duration - 15:
+        raise ValueError(f"截取时长不能超过视频总时长减去{15 + duration}秒")
+    
+    # 前5秒是片头，会露出曲名，后10秒是片尾，只会有无用的all perfect画面
+    start_time = random.uniform(5, video_duration - duration - 10)
+    # 需要注意，output_folder需要为绝对路径，才能准确地找到对应的文件
+    output_path = os.path.join(output_folder, f"{music_id}_{int(start_time)}_clip.mp4")
+    
+    if os.path.isfile(output_path):
+        raise Exception(f"生成了重复的文件")
 
-        # 前5秒是片头，会露出曲名，后10秒是片尾，只会有无用的all perfect画面
-        start_time = random.uniform(5, video_duration - duration - 10)
-        # 需要注意，output_folder需要为绝对路径，才能准确地找到对应的文件
-        output_path = os.path.join(output_folder, f"{music_id}_{int(start_time)}_clip.mp4")
-        if os.path.isfile(output_path):
-            raise Exception(f"生成了重复的文件")
-        
-        end_time = start_time + duration
-        clip = video.subclip(start_time, end_time)
-        clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
+    cut_video(input_path, output_path, start_time)
+    
     return start_time, output_path
 
 
@@ -83,9 +106,9 @@ async def make_answer_video(video_file, audio_file, music_id, output_folder, sta
     loading_clip_list.append(answer_clip_path)  # 保护一下（防止还没准备完毕就被发出了）
     
     # 使用异步线程来执行ffmpeg命令
-    await asyncio.to_thread(run_ffmpeg, video_file, audio_file, answer_file)
+    await asyncio.to_thread(merge_video_and_sound, video_file, audio_file, answer_file)
     # 使用异步线程来处理视频
-    await asyncio.to_thread(process_video, answer_file, answer_clip_path, start_time, duration)
+    await asyncio.to_thread(cut_video, answer_file, answer_clip_path, start_time)
 
     # 删除文件（可以保留同步操作）
     os.remove(answer_file)  # 删掉完整的答案文件（只发送前面猜的片段）
@@ -95,7 +118,7 @@ async def make_answer_video(video_file, audio_file, music_id, output_folder, sta
 
 
 # 在后台线程中运行ffmpeg命令
-def run_ffmpeg(video_file, audio_file, answer_file):
+def merge_video_and_sound(video_file, audio_file, answer_file):
     command = [
         "ffmpeg",
         "-i", video_file,
@@ -115,17 +138,6 @@ def run_ffmpeg(video_file, audio_file, answer_file):
         print(f"Error during merging: {e}")
     except Exception as ex:
         print(f"An unexpected error occurred: {ex}")
-
-
-def process_video(answer_file, output_path, start_time, duration):
-    with VideoFileClip(answer_file) as video:
-        video_duration = video.duration  # 视频总时长
-        if duration > video_duration - 5:
-            raise ValueError(f"截取时长不能超过视频总时长减去{5 + duration}秒")
-        end_time = start_time + duration
-        clip = video.subclip(start_time, end_time)
-        clip.write_videofile(output_path, codec="libx264", audio_codec="aac")
-
 
 
 def chart_rank_message(group_id):
@@ -181,7 +193,7 @@ async def chart_open_song_handler(matcher, song_name, group_id, user_id, ignore_
 
 
 @guess_chart.handle()
-async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+async def guess_chart_request(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
     if len(chart_total_list) == 0:
         await matcher.finish("文件夹没有下载任何谱面视频资源，请让bot主尽快到 https://github.com/apshuang/nonebot-plugin-guess-song 下载资源吧！")
     group_id = str(event.group_id)

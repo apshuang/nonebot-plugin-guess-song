@@ -165,6 +165,7 @@ game_alias_map = {
     "clue" : "线索猜歌",
     "chart" : "谱面猜歌",
     "random" : "随机猜歌",
+    "note": "note音猜歌",
 }
 
 game_alias_map_reverse = {
@@ -174,6 +175,7 @@ game_alias_map_reverse = {
     "线索猜歌" : "clue",
     "谱面猜歌" : "chart",
     "随机猜歌" : "random",
+    "note音猜歌": "note",
 }
 
 asyncio.run(main())
