@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-guess-song"
-version = "1.2.0"
+version = "1.2.1"
 description = "A Guess song plugin for Nonebot2"
 authors = [
     { name = "ssgXD", email = "554700172@qq.com" },
@@ -9,7 +9,7 @@ authors = [
     { name = "qianorange", email = "2080396637@qq.com" }
 ]
 dependencies = [
-    "nonebot2>=2.0.0",
+    "nonebot2>=2.3.0",
     "nonebot-adapter-onebot>=2.3.0",
     "nonebot-plugin-apscheduler>=0.5.0",
     "nonebot-plugin-localstore>=0.7.0",
