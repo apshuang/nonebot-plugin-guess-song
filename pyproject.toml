@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-guess-song"
-version = "1.2.1"
+version = "1.2.2"
 description = "A Guess song plugin for Nonebot2"
 authors = [
     { name = "ssgXD", email = "554700172@qq.com" },

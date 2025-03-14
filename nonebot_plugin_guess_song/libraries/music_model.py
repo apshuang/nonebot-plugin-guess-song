@@ -29,8 +29,8 @@ class Chart():
     def __init__(self, data: Dict):
         note_list = data.get('notes')
         self.tap = note_list[0]
-        self.slide = note_list[1]
-        self.hold = note_list[2]
+        self.hold = note_list[1]
+        self.slide = note_list[2]
         self.brk = note_list[3]
         if len(note_list) == 5:
             self.touch = note_list[3]
