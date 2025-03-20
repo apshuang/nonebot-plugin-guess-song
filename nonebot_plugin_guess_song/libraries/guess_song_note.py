@@ -34,13 +34,13 @@ def make_note_sound(input_path, start_time, output_path):
         output_path
     ]
     try:
-        print("Cutting note sound...")
+        logging.info("Cutting note sound...")
         subprocess.run(command, check=True)
-        print(f"Cutting completed. File saved as '{output_path}'.")
+        logging.info(f"Cutting completed. File saved as '{output_path}'.")
     except subprocess.CalledProcessError as e:
-        print(f"Error during cutting: {e}")
+        logging.error(f"Error during cutting: {e}", exc_info=True)
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        logging.error(f"An unexpected error occurred: {ex}", exc_info=True)
         
          
 def note_rank_message(group_id):
@@ -136,8 +136,10 @@ async def note_guess_handler(group_id, matcher: Matcher, args):
     start_time = random.uniform(5, video_duration - CLIP_DURATION - 10)
     output_path: Path = guess_resources_path / f"{group_id}_{start_time}.mp3"
     await asyncio.to_thread(make_note_sound, input_path, start_time, output_path)
-        
-    await matcher.send("这首歌的谱面截取的一个片段的note音如下，请回复\"猜歌xxx\"提交您认为在答案中的曲目（可以是歌曲的别名），或回复\"不猜了\"来停止游戏", reply_message=True)
+    msg = "这首歌的谱面截取的一个片段的note音如下，请回复\"猜歌xxx\"提交您认为在答案中的曲目（可以是歌曲的别名），或回复\"不猜了\"来停止游戏"
+    if len(args):
+        msg += f"\n本次note音猜歌范围：{', '.join(args)}"
+    await matcher.send(msg)
     gameplay_list[group_id] = {}
     gameplay_list[group_id]["note"] = (random_music, start_time)
 

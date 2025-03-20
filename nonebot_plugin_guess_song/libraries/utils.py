@@ -8,6 +8,7 @@ from typing import Union, Optional
 import random
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
+import logging
 
 from .music_model import *
 from ..config import *
@@ -67,7 +68,7 @@ def song_txt(music: Music, is_remaster: bool = False):
         f"定数：{'/'.join(map(str, music.ds))}"
     )
     pic_path = music_cover_path / (get_cover_len5_id(music.id) + ".png")
-    print(pic_path)
+    #print(pic_path)
     return [
         MessageSegment.image(f"file://{pic_path}"), 
         MessageSegment("text", {"text": output})]
@@ -138,7 +139,7 @@ async def send_forward_message(bot: Bot, target_group_id, sender_id, origin_mess
             # 该方法适用于napcat框架
             res_id = await bot.call_api("send_forward_msg", group_id=target_group_id, messages=messages)
         except Exception as e2:
-            print(e2)
+            logging.error(e2, exc_info=True)
 
 
 def load_game_data_json(gid: str):
@@ -332,7 +333,7 @@ def matchparam(param: str, filters: dict) -> bool:
         else:
             return False
     except Exception as e:
-        print(e)
+        logging.error(e, exc_info=True)
         return False
     return True
 

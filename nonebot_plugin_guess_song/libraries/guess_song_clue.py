@@ -53,7 +53,7 @@ async def get_clues(music: Music):
             
             clue_list.append(f'的歌曲长度为 {int(song_length/60)}分{int(song_length%60)}秒')
         except Exception as e:
-            print(e)
+            logging.error(e, exc_info=True)
             
     # 特殊属性加入重要线索
     if total_list.by_id(str(int(music.id) % 10000)) and total_list.by_id(str(int(music.id) % 10000 + 10000)):
@@ -120,7 +120,10 @@ async def clue_guess_handler(group_id, matcher: Matcher, args):
     gameplay_list[group_id] = {}
     gameplay_list[group_id]["clue"] = random_music
     
-    await matcher.send("我将每隔8秒给你一些和这首歌相关的线索，直接输入歌曲的 id、标题、有效别名 都可以进行猜歌。", reply_message=True)
+    msg = "我将每隔8秒给你一些和这首歌相关的线索，直接输入歌曲的 id、标题、有效别名 都可以进行猜歌。"
+    if len(args):
+        msg += f"\n本次线索猜歌范围：{', '.join(args)}"
+    await matcher.send(msg)
     await asyncio.sleep(5)
     for cycle in range(8):
         if group_id not in gameplay_list or not gameplay_list[group_id].get("clue"):

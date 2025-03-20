@@ -60,13 +60,13 @@ def cut_video(input_path, output_path, start_time):
         output_path
     ]
     try:
-        print("Cutting video...")
+        logging.info("Cutting video...")
         subprocess.run(command, check=True)
-        print(f"Cutting completed. File saved as '{output_path}'.")
+        logging.info(f"Cutting completed. File saved as '{output_path}'.")
     except subprocess.CalledProcessError as e:
-        print(f"Error during cutting: {e}")
+        logging.error(f"Error during cutting: {e}", exc_info=True)
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        logging.error(f"An unexpected error occurred: {ex}", exc_info=True)
     
 
 def random_video_clip(input_path, duration, music_id, output_folder):
@@ -93,10 +93,10 @@ def random_video_clip(input_path, duration, music_id, output_folder):
 
 async def make_answer_video(video_file, audio_file, music_id, output_folder, start_time, duration):
     if not os.path.exists(video_file):
-        print(f"Error: Video file '{video_file}' does not exist.")
+        logging.error(f"Error: Video file '{video_file}' does not exist.", exc_info=True)
         return
     if not os.path.exists(audio_file):
-        print(f"Error: Audio file '{audio_file}' does not exist.")
+        logging.error(f"Error: Audio file '{audio_file}' does not exist.", exc_info=True)
         return
 
     os.makedirs(output_folder, exist_ok=True)
@@ -131,13 +131,13 @@ def merge_video_and_sound(video_file, audio_file, answer_file):
         answer_file
     ]
     try:
-        print("Merging video and audio...")
+        logging.info("Merging video and audio...")
         subprocess.run(command, check=True)  # 合成视频文件
-        print(f"Merging completed. File saved as '{answer_file}'.")
+        logging.info(f"Merging completed. File saved as '{answer_file}'.")
     except subprocess.CalledProcessError as e:
-        print(f"Error during merging: {e}")
+        logging.error(f"Error during merging: {e}", exc_info=True)
     except Exception as ex:
-        print(f"An unexpected error occurred: {ex}")
+        logging.error(f"An unexpected error occurred: {ex}", exc_info=True)
 
 
 def chart_rank_message(group_id):
@@ -207,7 +207,7 @@ async def guess_chart_request(event: GroupMessageEvent, matcher: Matcher, args: 
         if len(general_charts_pool) == 0:
             await matcher.finish("当前还没有准备好的谱面噢，请过15秒再尝试一下吧！如果反复出现该问题，请联系bot主扩大preload容量！", reply_message=True)
         (question_clip_path, answer_clip_path) = general_charts_pool.pop(random.randint(0, len(general_charts_pool) - 1))
-        await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path)
+        await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path, params)
     else:
         gameplay_list[group_id] = {}
         gameplay_list[group_id]["chart"] = {}  # 先占住坑，因为制作视频的时间很长，防止在此期间有其它猜歌请求
@@ -228,7 +228,7 @@ async def guess_chart_request(event: GroupMessageEvent, matcher: Matcher, args: 
         start_time, clip_path = await asyncio.to_thread(random_video_clip, music_mp4_file, CLIP_DURATION, random_music_id, output_folder)
         make_answer_task = asyncio.create_task(make_answer_video(music_mp4_file, music_mp3_file, random_music_id, output_folder, start_time, CLIP_DURATION))
         answer_clip_path = os.path.join(output_folder, f"{random_music_id}_{int(start_time)}_answer_clip.mp4")
-        await guess_chart_handler(group_id, matcher, clip_path, answer_clip_path)
+        await guess_chart_handler(group_id, matcher, clip_path, answer_clip_path, params)
         
         # 带参数的谱面猜歌要自己管好自己的文件
         now = datetime.now()
@@ -271,7 +271,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 charts_already_old.append((question_clip_path, answer_clip_path))
         for (question_clip_path, answer_clip_path) in charts_already_old:
             charts_pool.remove((question_clip_path, answer_clip_path))
-            print(f"删除了过时的谱面：{question_clip_path}")
+            logging.info(f"删除了过时的谱面：{question_clip_path}")
             
         make_param_chart_task = asyncio.create_task(make_param_chart_video(group_id, params))
         await matcher.send("使用带参数的谱面猜歌，如果猜得太快可能会导致谱面文件来不及制作噢，请稍微耐心等待一下")
@@ -287,7 +287,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 groupID_params_map.pop(group_id)
                 await matcher.finish("bot主的电脑太慢啦，过了30秒还没有一个谱面制作出来！建议vivo50让我换电脑！", reply_message=True)
             (question_clip_path, answer_clip_path) = charts_pool.pop(random.randint(0, len(charts_pool) - 1))
-            await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path)
+            await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path, params)
             await asyncio.sleep(1.5)
         try:
             if continuous_stop[group_id] > 3:
@@ -295,7 +295,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 groupID_params_map.pop(group_id)
                 await matcher.finish('没人猜了？ 那我下班了。')
         except Exception as e:
-            print(f"continuous guess chart error: {e}")
+            logging.error(f"continuous guess chart error: {e}", exc_info=True)
         await asyncio.sleep(2.5)    
         
     if len(params) != 0:   
@@ -305,14 +305,17 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         groupID_folder2delete_timestamp_list.append((group_id, chart_preload_path / sub_path_name, now_timestamp))
     
 
-async def guess_chart_handler(group_id, matcher: Matcher, question_clip_path, answer_clip_path):
+async def guess_chart_handler(group_id, matcher: Matcher, question_clip_path, answer_clip_path, filter_params):
     # 进来之前必须保证question视频已经准备好
     gameplay_list[group_id] = {}
     gameplay_list[group_id]["chart"] = answer_clip_path  # 将answer的路径存下来，方便猜歌以及主动停止时使用
     charts_save_list.append(question_clip_path)  # 存住它，不让这个“单身谱面”被删除，同时也让它不被其它任务当作一个完整谱面
     charts_save_list.append(answer_clip_path)
     
-    await matcher.send("这个谱面截取的一个片段如下。请回复“猜歌xxx/开歌xxx”或直接发送别名来猜歌，或回复“不猜了“来停止游戏。", reply_message=True)
+    msg = "这个谱面截取的一个片段如下。请回复“猜歌xxx/开歌xxx”或直接发送别名来猜歌，或回复“不猜了“来停止游戏。"
+    if len(filter_params):
+        msg += f"\n本次谱面猜歌范围：{', '.join(filter_params)}"
+    await matcher.send(msg)
     await matcher.send(MessageSegment.video(f"file://{question_clip_path}"))
     
     os.remove(question_clip_path)  # 用完马上删，防止被其它任务拿到
@@ -422,7 +425,7 @@ async def init_chart_pool_by_existing_files(root_directory, pool: List, force = 
         if force or file not in charts_save_list:
             # 只在第一次启动时强制删除单身谱面
             os.remove(file)
-            print(f"Deleted: {file}")
+            logging.info(f"Deleted: {file}")
         
     # 删掉那些参数谱面猜歌的文件夹
     global groupID_folder2delete_timestamp_list
@@ -460,9 +463,9 @@ async def init_chart_pool_by_existing_files(root_directory, pool: List, force = 
             if os.path.isdir(folder_path) and folder_name not in valid_folders:
                 try:
                     shutil.rmtree(folder_path)
-                    print(f"已删除文件夹: {folder_path}")
+                    logging.info(f"已删除文件夹: {folder_path}")
                 except Exception as e:
-                    print(f"删除文件夹 {folder_path} 时出错: {e}")
+                    logging.error(f"删除文件夹 {folder_path} 时出错: {e}", exc_info=True)
     
 
 @check_chart_file_completeness.handle()

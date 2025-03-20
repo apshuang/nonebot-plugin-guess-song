@@ -111,7 +111,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 charts_already_old.append((question_clip_path, answer_clip_path))
         for (question_clip_path, answer_clip_path) in charts_already_old:
             charts_pool.remove((question_clip_path, answer_clip_path))
-            print(f"删除了过时的谱面：{question_clip_path}")
+            logging.info(f"删除了过时的谱面：{question_clip_path}")
         make_param_chart_task = asyncio.create_task(make_param_chart_video(group_id, params))
     else:
         charts_pool = general_charts_pool
@@ -137,7 +137,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                         groupID_params_map.pop(group_id)
                     await matcher.finish("bot主的电脑太慢啦，过了30秒还没有一个谱面制作出来！建议vivo50让我换电脑！", reply_message=True)
                 (question_clip_path, answer_clip_path) = charts_pool.pop(random.randint(0, len(charts_pool) - 1))
-                await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path)
+                await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path, params)
                 await asyncio.sleep(2)
             elif choice == 5:
                 await note_guess_handler(group_id, matcher, params)
@@ -259,28 +259,37 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
         continuous_stop.pop(group_id)
         await matcher.finish('已停止，坚持把最后一首歌猜完吧！')
 
-def add_credit_message(group_id):
+def add_credit_message(group_id) -> list[str]:
     record = {}
     gid = str(group_id)
     game_data = load_game_data_json(gid)
-    user_info = load_data(user_info_path)    # 这里主要是给用户加分，可以按需使用
     for game_name, data in game_data[gid]['rank'].items():
         for user_id, point in data.items():
-            try:
-                user_info[user_id]['credit'] += point // point_per_credit_dict[game_name]
-                record.setdefault(user_id, [0, 0])
-                record[user_id][0] += point
-                record[user_id][1] += point // point_per_credit_dict[game_name]
-            except:
-                pass
-    save_game_data(user_info, user_info_path)
+            record.setdefault(user_id, [0, 0])
+            record[user_id][0] += point
+            record[user_id][1] += point // point_per_credit_dict[game_name]
     sorted_record = sorted(record.items(), key=lambda x: (x[1][1], x[1][0]), reverse=True)
     if sorted_record:
-        msg = f'今日加分记录：\n'
+        msg_list = []
+        msg = f'今日猜歌总记录：\n'
         for rank, (user_id, count) in enumerate(sorted_record, 1):
-            msg += f"{rank}. {MessageSegment.at(user_id)} 答对{count[0]}题，加{count[1]}分！\n"
-        msg += "便宜你们了。。"
-        return msg
+            if (rank-1) % 30 == 0 and rank != 1:
+                msg_list.append(msg)
+                msg = ""
+            if config.everyday_is_add_credits:
+                msg += f"{rank}. {MessageSegment.at(user_id)} 今天共答对{count[0]}题，加{count[1]}分！\n"
+                # -------------请在此处填写你的加分代码（如需要）------------------
+
+    
+                # -------------请在此处填写你的加分代码（如需要）------------------
+            else:
+                msg += f"{rank}. {MessageSegment.at(user_id)} 今天共答对{count[0]}题！\n"
+        if config.everyday_is_add_credits:
+            msg += "便宜你们了。。"
+        msg_list.append(msg)
+        return msg_list
+    else:
+        return []
 
 async def send_top_three(bot, group_id, isaddcredit = False, is_force = False):
     sender_id = bot.self_id
@@ -293,7 +302,7 @@ async def send_top_three(bot, group_id, isaddcredit = False, is_force = False):
     
     origin_messages = [char_msg, listen_msg, cover_msg, clue_msg, chart_msg, note_msg]
     if isaddcredit:
-        origin_messages.append(add_credit_message(group_id))
+        origin_messages.extend(add_credit_message(group_id))
     if is_force:
         empty_tag = True
         for msg in origin_messages:
@@ -333,7 +342,7 @@ async def _(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandAr
     else:
         msg = '您的输入有误，请输入游戏名（比如开字母、谱面猜歌、全部）或其英文（比如listen、cover、all）来进行开启或禁用猜歌游戏'
     save_game_data(global_game_data, game_data_path)
-    print(global_game_data)
+    #print(global_game_data)
     await matcher.finish(msg)
 
 @top_three.handle()

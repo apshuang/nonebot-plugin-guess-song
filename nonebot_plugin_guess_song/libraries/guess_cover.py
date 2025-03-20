@@ -167,12 +167,13 @@ async def guess_cover_handler(gid, matcher: Matcher, args):
     draw, pictype = await pic(pic_path, str(gid))
     gameplay_list[gid] = {}
     gameplay_list[gid]["cover"] = random_music
-    await matcher.send(
-        MessageSegment.text(f'以下{pictype}图片是哪首歌的曲绘：\n') +
-        MessageSegment.image(image_to_base64(draw)) +
-        MessageSegment.text('请在30s内输入答案'),
-        reply_message=True
-    )
+    
+    msg = MessageSegment.text(f'以下{pictype}图片是哪首歌的曲绘：\n')
+    msg += MessageSegment.image(image_to_base64(draw))
+    msg += MessageSegment.text('请在30s内输入答案')
+    if len(args):
+        msg += MessageSegment.text(f"\n本次猜曲绘范围：{', '.join(args)}")
+    await matcher.send(msg)
     for _ in range(30):
         await asyncio.sleep(1)
         if gameplay_list.get(gid) is None or not gameplay_list[gid].get("cover") or gameplay_list[gid].get("cover") != random_music:

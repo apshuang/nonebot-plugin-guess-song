@@ -107,8 +107,10 @@ async def listen_guess_handler(group_id, matcher: Matcher, args):
     music_file = get_music_file_path(random_music)
     if not os.path.isfile(music_file):
         await matcher.finish(f"文件夹中没有{random_music.title}的音乐文件，请让bot主尽快补充吧！")
-
-    await matcher.send("这首歌截取的一个片段如下，请回复\"猜歌xxx\"提交您认为在答案中的曲目（可以是歌曲的别名），或回复\"不猜了\"来停止游戏", reply_message=True)
+    msg = "这首歌截取的一个片段如下，请回复\"猜歌xxx\"提交您认为在答案中的曲目（可以是歌曲的别名），或回复\"不猜了\"来停止游戏"
+    if len(args):
+        msg += f"\n本次听歌猜曲范围：{', '.join(args)}"
+    await matcher.send(msg)
     gameplay_list[group_id] = {}
     gameplay_list[group_id]["listen"] = random_music
 
