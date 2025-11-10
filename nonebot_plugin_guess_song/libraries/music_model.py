@@ -1,15 +1,7 @@
 import re
 import json 
-import asyncio
-from typing import Dict, List, Optional
 
 from ..config import *
-
-from nonebot import get_plugin_config
-
-
-config = get_plugin_config(Config)
-
 
 def contains_japanese(text):
     # 日文字符的 Unicode 范围包括平假名、片假名、以及部分汉字
@@ -18,16 +10,9 @@ def contains_japanese(text):
 
 
 class Chart():
-    tap: Optional[int] = None
-    slide: Optional[int] = None
-    hold: Optional[int] = None
-    brk: Optional[int] = None
-    touch: Optional[int] = None
-    charter: Optional[str] = None
-    note_sum: Optional[int] = None
 
-    def __init__(self, data: Dict):
-        note_list = data.get('notes')
+    def __init__(self, data: dict):
+        note_list = data['notes']
         self.tap = note_list[0]
         self.hold = note_list[1]
         self.slide = note_list[2]
@@ -37,71 +22,55 @@ class Chart():
             self.brk = note_list[4]
         else:
             self.touch = 0
-        self.charter = data.get('charter')
+        self.charter = data['charter']
         self.note_sum = self.tap + self.slide + self.hold + self.brk + self.touch
 
 
 class Music():
-    id: Optional[str] = None
-    title: Optional[str] = None
-    type: Optional[str] = None
-    ds: Optional[List[float]] = None
-    level: Optional[List[str]] = None
-    cids: Optional[List[int]] = None
-    charts: Optional[List[Chart]] = None
-    artist: Optional[str] = None
-    genre: Optional[str] = None
-    bpm: Optional[float] = None
-    release_date: Optional[str] = None
-    version: Optional[str] = None
-    is_new: Optional[bool] = None
 
-    diff: List[int] = []
-    alias: List[str] = []
+    diff: list[int] = []
+    alias: list[str] = []
 
-    def __init__(self, data: Dict):
+    def __init__(self, data: dict):
         # 从字典中获取值并设置类的属性
-        self.id: Optional[str] = data.get('id')
-        self.title: Optional[str] = data.get('title')
-        self.type: Optional[str] = data.get('type')
-        self.ds: Optional[List[float]] = data.get('ds')
-        self.level: Optional[List[str]] = data.get('level')
-        self.cids: Optional[List[int]] = data.get('cids')
-        self.charts: Optional[List[Chart]] = [Chart(chart) for chart in data.get('charts')]
-        self.artist: Optional[str] = data.get('basic_info').get('artist')
-        self.genre: Optional[str] = data.get('basic_info').get('genre')
-        self.bpm: Optional[float] = data.get('basic_info').get('bpm')
-        self.release_date: Optional[str] = data.get('basic_info').get('release_date')
-        self.version: Optional[str] = data.get('basic_info').get('from')
-        self.is_new: Optional[bool] = data.get('basic_info').get('is_new')
+        self.id: str = data['id']
+        self.title: str = data['title']
+        self.type: str = data['type']
+        self.ds: list[float] = data['ds']
+        self.level: list[str] = data['level']
+        self.cids: list[int] = data['cids']
+        self.charts: list[Chart] = [Chart(chart) for chart in data['charts']]
+        self.artist: str = data['basic_info']['artist']
+        self.genre: str = data['basic_info']['genre']
+        self.bpm: float = data['basic_info']['bpm']
+        self.release_date: str = data['basic_info']['release_date']
+        self.version: str = data['basic_info']['from']
+        self.is_new: bool = data['basic_info']['is_new']
 
 class MusicList():
-    music_list: Optional[List[Music]] = []
+    music_list: list[Music] = []
     
-    def __init__(self, data: List):
+    def __init__(self, data: list):
         for music_data in data:
             music = Music(music_data)
             self.music_list.append(music)
 
-    def init_alias(self, data: Dict):
+    def init_alias(self, data: list):
         cache_dict = {}
         for alias_info in data:
             cache_dict[str(alias_info.get("SongID"))] = alias_info.get("Alias")
         for music in self.music_list:
-            if cache_dict.get(music.id):
-                music.alias = cache_dict.get(music.id)
-            else:
-                music.alias = []
+            music.alias = cache_dict.get(music.id, [])
     
     
-    def by_id(self, music_id: str) -> Optional[Music]:
+    def by_id(self, music_id: str) -> Music|None:
         for music in self.music_list:
             if music.id == music_id:
                 return music
         return None
 
 
-async def main():
+def init_music_names():
 
     global total_list, alias_dict, filter_list
 
@@ -110,7 +79,7 @@ async def main():
             with open(data_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except FileNotFoundError:
-            return {}
+            return []
 
     music_data = load_data(music_info_path)
     total_list = MusicList(music_data)
@@ -176,7 +145,6 @@ game_alias_map_reverse = {
     "谱面猜歌" : "chart",
     "随机猜歌" : "random",
     "note音猜歌": "note",
-}
+}   
 
-asyncio.run(main())
-    
+init_music_names()

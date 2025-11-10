@@ -1,11 +1,14 @@
 import random
+from datetime import datetime
+from pathlib import Path
 
-from .utils import *
+from .utils import get_top_three, check_game_disable, isplayingcheck, filter_random, record_game_success, fault_tips
 from .music_model import gameplay_list, game_alias_map, filter_list, alias_dict, total_list
+from ..config import *
 
 from nonebot import on_command, on_startswith
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import GroupMessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment, Message
 from nonebot.params import Startswith, CommandArg
 
 
@@ -15,7 +18,7 @@ guess_open = on_startswith("开", priority=5)
 
 def open_character_message(group_id, first = False, early_stop = False):
 
-    character_info = gameplay_list.get(group_id).get("open_character")
+    character_info = gameplay_list[group_id].get("open_character")
     song_info_list = character_info.get("info")
     guessed_character = character_info.get("guessed")
     params = character_info.get("params")
@@ -78,7 +81,7 @@ def open_character_reply_message(success_guess):
 def open_character_rank_message(group_id):
     top_open_character = get_top_three(group_id, "open_character")
     if top_open_character:
-        msg = "今天的前三名开字母高手：\n"
+        msg = "今日的前三名开字母高手：\n"
         for rank, (user_id, count) in enumerate(top_open_character, 1):
             msg += f"{rank}. {MessageSegment.at(user_id)} 开出了{count}首歌！\n"
         msg += "一堆maip。。。"
@@ -112,8 +115,8 @@ async def guess_request_handler(matcher: Matcher, event: GroupMessageEvent, args
 async def guess_open_handler(matcher: Matcher, event: GroupMessageEvent, start: str = Startswith()):
     # 开单个字母
     group_id = str(event.group_id)
-    if gameplay_list.get(group_id) and gameplay_list.get(group_id).get("open_character") is not None:
-        character_info = gameplay_list.get(group_id).get("open_character")
+    if gameplay_list.get(group_id) and gameplay_list[group_id].get("open_character") is not None:
+        character_info = gameplay_list[group_id]["open_character"]
         character = event.get_plaintext().lower()[len(start):].strip()
         if len(character) != 1:
             return 
@@ -138,12 +141,13 @@ async def guess_open_handler(matcher: Matcher, event: GroupMessageEvent, start: 
 
 async def character_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag):
     # 开歌的处理函数
-    character_info = gameplay_list.get(group_id).get("open_character")
+    character_info = gameplay_list[group_id]["open_character"]
     music_candidates = alias_dict.get(song_name)
     if music_candidates is None:
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名")
+        return
     
     success_guess = []
     if len(music_candidates) < 20:

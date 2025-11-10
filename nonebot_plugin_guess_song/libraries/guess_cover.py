@@ -2,13 +2,15 @@ import random
 import asyncio
 from typing import Tuple
 from PIL import Image, ImageFilter, ImageEnhance
+from pathlib import Path
 
-from .utils import *
+from .utils import load_game_data_json, get_top_three, record_game_success, check_game_disable, isplayingcheck, filter_random, song_txt, get_cover_len5_id, image_to_base64, to_bytes_io, save_game_data, fault_tips
 from .music_model import gameplay_list, alias_dict, total_list, game_alias_map, continuous_stop
+from ..config import *
 
-from nonebot import on_fullmatch, on_command
+from nonebot import on_command
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, GROUP_ADMIN, GROUP_OWNER
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, GROUP_ADMIN, GROUP_OWNER, MessageSegment, Message
 from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
 
@@ -41,9 +43,9 @@ def apply_transpose(im: Image.Image) -> Image.Image:
     im = im.rotate(angle)
     flip = random.randint(0, 2)
     if flip == 1:
-        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+        im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     elif flip == 2:
-        im = im.transpose(Image.FLIP_TOP_BOTTOM)
+        im = im.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
     return im
 
 def apply_shuffle(im: Image.Image, shuffle) -> Image.Image:
@@ -72,7 +74,7 @@ vital_apply = {
 }
 
 
-async def pic(path: str, gid: str) -> Tuple[Image.Image, str]:
+async def pic(path: Path, gid: str) -> Tuple[Image.Image, str]:
     im = Image.open(path)
     data = load_game_data_json(gid)
     args = data[gid]['config']
@@ -103,13 +105,14 @@ def cover_rank_message(group_id):
 
 
 async def cover_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag):
-    pic_info = gameplay_list.get(group_id).get("cover")
+    pic_info = gameplay_list[group_id]["cover"]
 
     music_candidates = alias_dict.get(song_name)
     if music_candidates is None:
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名", reply_message=True)
+        return
     
     if len(music_candidates) < 20:
         for music_index in music_candidates:

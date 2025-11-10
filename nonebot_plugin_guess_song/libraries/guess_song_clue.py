@@ -2,21 +2,24 @@ import random
 import asyncio
 from PIL import Image
 from pydub import AudioSegment # 请注意，这里还需要ffmpeg，请自行安装
+from pathlib import Path
+import logging
 
-from .utils import *
+from .utils import get_music_file_path, check_game_disable, isplayingcheck, fault_tips, filter_random, get_cover_len5_id, song_txt, get_top_three, record_game_success
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, Music, continuous_stop
 from .guess_cover import image_to_base64
+from ..config import *
 
-from nonebot import on_fullmatch, on_command
+from nonebot import on_command
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
 
 guess_clue = on_command("线索猜歌", aliases={"猜歌"}, priority=5)    
 continuous_guess_clue = on_command('连续线索猜歌', priority=5)
 
-async def pic(path: str) -> Image.Image:
+async def pic(path: Path) -> Image.Image:
     """裁切曲绘"""
     im = Image.open(path)
     w, h = im.size
@@ -162,12 +165,13 @@ async def clue_guess_handler(group_id, matcher: Matcher, args):
     
 async def clue_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag):
     '''开歌处理函数'''
-    clue_info = gameplay_list.get(group_id).get("clue")
+    clue_info = gameplay_list[group_id]["clue"]
     music_candidates = alias_dict.get(song_name)
     if music_candidates is None:
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名", reply_message=True)
+        return
     
     if len(music_candidates) < 20:
         for music_index in music_candidates:

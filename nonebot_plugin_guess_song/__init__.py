@@ -1,14 +1,22 @@
-from nonebot import get_plugin_config, get_bot
+import random
+import asyncio
+import os
+import logging
+
+from nonebot import get_bot, get_driver, logger
 from nonebot import on_startswith, on_command, on_fullmatch, on_message
 from nonebot.plugin import PluginMetadata
-from nonebot.adapters.onebot.v11 import Message, MessageSegment, GroupMessageEvent, Bot
+from nonebot.adapters.onebot.v11 import Message, MessageSegment, GroupMessageEvent, Bot, GROUP_ADMIN, GROUP_OWNER
 from nonebot.params import Startswith
 from nonebot.matcher import Matcher
 from nonebot.plugin import PluginMetadata, require
+from nonebot.permission import SUPERUSER
+from nonebot.params import CommandArg
 
-from .libraries import *
+from .libraries.utils import to_bytes_io, send_forward_message, filter_random, load_data, save_game_data, load_game_data_json, song_txt, check_game_disable, isplayingcheck, split_id_from_path, fault_tips
+from .libraries.music_model import game_alias_map_reverse, total_list, chart_preload_path, gameplay_list, continuous_stop, game_alias_map, alias_dict
 from .config import *
-
+from .libraries import *
 
 require('nonebot_plugin_apscheduler')
 
@@ -24,6 +32,14 @@ __plugin_meta__ = PluginMetadata(
     supported_adapters={"~onebot.v11"},
 )
 
+driver = get_driver()
+@driver.on_startup
+async def _():
+    await init_listen_guess_list()
+    logger.success('听歌猜曲加载完成')
+    await init_chart_guess_info()
+    await init_chart_pool_by_existing_files(chart_preload_path, general_charts_pool, True)
+    logger.success('谱面猜歌加载完成')
 
 def is_now_playing_game(event: GroupMessageEvent) -> bool:
     return gameplay_list.get(str(event.group_id)) is not None
@@ -150,17 +166,17 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         await asyncio.sleep(1)
 
 async def open_song_dispatcher(matcher: Matcher, song_name, user_id, group_id, ignore_tag=False):
-    if gameplay_list.get(group_id).get("open_character"):
+    if gameplay_list[group_id].get("open_character"):
         await character_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
-    elif gameplay_list.get(group_id).get("listen"):
+    elif gameplay_list[group_id].get("listen"):
         await listen_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
-    elif gameplay_list.get(group_id).get("cover"):
+    elif gameplay_list[group_id].get("cover"):
         await cover_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
-    elif gameplay_list.get(group_id).get("clue"):
+    elif gameplay_list[group_id].get("clue"):
         await clue_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
-    elif gameplay_list.get(group_id).get("chart"):
+    elif gameplay_list[group_id].get("chart"):
         await chart_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
-    elif gameplay_list.get(group_id).get("note"):
+    elif gameplay_list[group_id].get("note"):
         await note_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
 
 @open_song.handle()
@@ -198,18 +214,18 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
     # 中途停止的处理函数
     group_id = str(event.group_id)
     if gameplay_list.get(group_id) is not None:
-        now_playing_game = list(gameplay_list.get(group_id).keys())[0]
+        now_playing_game = list(gameplay_list[group_id].keys())[0]
         if now_playing_game == "open_character":
             message = open_character_message(group_id, early_stop = True)
             await matcher.finish(message)
         elif now_playing_game in ["listen", "cover", "clue"]:
-            music = gameplay_list.get(group_id).get(now_playing_game)
+            music = gameplay_list[group_id].get(now_playing_game)
             gameplay_list.pop(group_id)
             await matcher.finish(
                 MessageSegment.text(f'很遗憾，你没有猜到答案，正确的答案是：\n') + song_txt(music) + MessageSegment.text('\n\n。。30秒都坚持不了吗')
                 ,reply_message=True)
         elif now_playing_game == "chart":
-            answer_clip_path = gameplay_list.get(group_id).get("chart")
+            answer_clip_path = gameplay_list[group_id].get("chart")
             gameplay_list.pop(group_id)  # 需要先pop，不然的话发了答案之后还能猜
             random_music_id, start_time = split_id_from_path(answer_clip_path)
             is_remaster = False
@@ -219,7 +235,8 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
                 is_remaster = True
             random_music = total_list.by_id(random_music_id)
             charts_save_list.append(answer_clip_path)  # 但是必须先把它保护住，否则有可能发到一半被删掉
-            reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的原片段如下："
+            if random_music:
+                reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的原片段如下："
             await matcher.send(reply_message, reply_message=True)
             if answer_clip_path in loading_clip_list:
                 for i in range(31):
@@ -232,7 +249,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
             os.remove(answer_clip_path)
             charts_save_list.remove(answer_clip_path)  # 发完了就可以解除保护了
         elif now_playing_game == "note":
-            (answer_music, start_time) = gameplay_list.get(group_id).get(now_playing_game)
+            (answer_music, start_time) = gameplay_list[group_id].get(now_playing_game)
             random_music_id = answer_music.id
             is_remaster = False
             if int(random_music_id) > 500000:
@@ -241,7 +258,8 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
                 is_remaster = True
             random_music = total_list.by_id(random_music_id)
             gameplay_list.pop(group_id)
-            await matcher.send(
+            if random_music:
+                await matcher.send(
                 MessageSegment.text(f'很遗憾，你没有猜到答案，正确的答案是：\n') + song_txt(random_music, is_remaster) + MessageSegment.text('\n\n。。30秒都坚持不了吗')
                 ,reply_message=True)
             answer_input_path = id_mp3_file_map.get(answer_music.id)  # 这个是旧的id，即白谱应该找回白谱的id
@@ -276,7 +294,7 @@ def add_credit_message(group_id) -> list[str]:
             if (rank-1) % 30 == 0 and rank != 1:
                 msg_list.append(msg)
                 msg = ""
-            if config.everyday_is_add_credits:
+            if game_config.everyday_is_add_credits:
                 msg += f"{rank}. {MessageSegment.at(user_id)} 今天共答对{count[0]}题，加{count[1]}分！\n"
                 # -------------请在此处填写你的加分代码（如需要）------------------
 
@@ -284,7 +302,7 @@ def add_credit_message(group_id) -> list[str]:
                 # -------------请在此处填写你的加分代码（如需要）------------------
             else:
                 msg += f"{rank}. {MessageSegment.at(user_id)} 今天共答对{count[0]}题！\n"
-        if config.everyday_is_add_credits:
+        if game_config.everyday_is_add_credits:
             msg += "便宜你们了。。"
         msg_list.append(msg)
         return msg_list
@@ -316,9 +334,9 @@ async def send_top_three(bot, group_id, isaddcredit = False, is_force = False):
     
 @enable_guess_game.handle()
 @disable_guess_game.handle()
-async def _(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
+async def _(matcher: Matcher, event: GroupMessageEvent, args: Message = CommandArg()):
     gid = str(event.group_id)
-    arg = arg.extract_plain_text().strip().lower()
+    arg = args.extract_plain_text().strip().lower()
     enable_sign = True
     if type(matcher) is enable_guess_game:
         enable_sign = True
@@ -351,7 +369,7 @@ async def top_three_handler(event: GroupMessageEvent, matcher: Matcher, bot: Bot
 
 @scheduler.scheduled_job('cron', hour=15, minute=00)
 async def _():
-    bot: Bot = get_bot()
+    bot = get_bot()
     group_list = await bot.call_api("get_group_list")
     for group_info in group_list:
         group_id = str(group_info.get("group_id"))
@@ -360,7 +378,7 @@ async def _():
 
 @scheduler.scheduled_job('cron', hour=23, minute=57)
 async def send_top_three_schedule():
-    bot: Bot = get_bot()
+    bot = get_bot()
     group_list = await bot.call_api("get_group_list")
     for group_info in group_list:
         group_id = str(group_info.get("group_id"))

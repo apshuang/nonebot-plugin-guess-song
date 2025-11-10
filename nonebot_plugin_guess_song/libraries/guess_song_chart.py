@@ -4,30 +4,32 @@ import random
 import shutil
 import asyncio
 import subprocess
+from datetime import datetime
+import logging
+import os
 
-from .utils import *
+from .utils import Music, seconds_to_hms, get_video_duration, get_top_three, split_id_from_path, record_game_success, song_txt, check_game_disable, isplayingcheck, filter_random, fault_tips
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, continuous_stop
+from ..config import *
 
-from nonebot import on_fullmatch, on_command
+from nonebot import on_command
 from nonebot.plugin import require
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
-from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent, MessageSegment
 
-scheduler = require('nonebot_plugin_apscheduler')
+require('nonebot_plugin_apscheduler')
 
 from nonebot_plugin_apscheduler import scheduler
-
-config = get_plugin_config(Config)
 
 id_mp3_file_map = {}
 id_mp4_file_map = {}
 id_music_map = {}
-groupID_params_map: Dict[int, str] = {}  # 这个map只在带参数的连续谱面猜歌下需要使用
-chart_total_list: List[Music] = []  # 为谱面猜歌特制的total_list，包含紫白谱的music（两份），紫谱music去掉白谱的内容（定数等），白谱music去掉紫谱内容并顶到紫谱位置
+groupID_params_map: dict[str, list[str]] = {}  # 这个map只在带参数的连续谱面猜歌下需要使用
+chart_total_list: list[Music] = []  # 为谱面猜歌特制的total_list，包含紫白谱的music（两份），紫谱music去掉白谱的内容（定数等），白谱music去掉紫谱内容并顶到紫谱位置
 loading_clip_list = []
-groupID_folder2delete_timestamp_list: List = {}  # 在猜完之后需要删除参数文件夹，所以需记录下来（如果直接删除可能会导致race condition）
+groupID_folder2delete_timestamp_list: list = []  # 在猜完之后需要删除参数文件夹，所以需记录下来（如果直接删除可能会导致race condition）
 CLIP_DURATION = 30
 GUESS_TIME = 90
 PRELOAD_CHECK_TIME = 40  # 这个时间请根据服务器性能来设置，建议设置为制作一套谱面视频的时间+10秒左右
@@ -38,7 +40,7 @@ TIME_TO_DELETE = 120
 
 general_charts_pool = []
 charts_save_list = []  # 用于存住当前正在游玩的answer文件，防止自检时删掉（因为它的question已经被删掉了，所以他可能会被当成单身谱面而被删掉）
-param_charts_pool: Dict[str, List] = {}
+param_charts_pool: dict[str, list] = {}
 
 guess_chart = on_command("看谱猜歌", aliases={"谱面猜歌"}, priority=5)    
 continuous_guess_chart = on_command('连续谱面猜歌', priority=5)
@@ -75,7 +77,7 @@ def random_video_clip(input_path, duration, music_id, output_folder):
     os.makedirs(output_folder, exist_ok=True)
     
     video_duration = get_video_duration(input_path)
-    if duration > video_duration - 15:
+    if not video_duration or duration > video_duration - 15:
         raise ValueError(f"截取时长不能超过视频总时长减去{15 + duration}秒")
     
     # 前5秒是片头，会露出曲名，后10秒是片尾，只会有无用的all perfect画面
@@ -167,11 +169,12 @@ async def chart_open_song_handler(matcher, song_name, group_id, user_id, ignore_
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名", reply_message=True)
+        return
     
     if len(music_candidates) < 20:
         for music_index in music_candidates:
             music = total_list.music_list[music_index]
-            if random_music.id == music.id:
+            if random_music and random_music.id == music.id:
                 record_game_success(user_id=user_id, group_id=group_id, game_type="chart")
                 gameplay_list.pop(group_id)  # 需要先pop，不然的话发了答案之后还能猜
                 charts_save_list.append(answer_clip_path)  # 但是必须先把它保护住，否则有可能发到一半被删掉
@@ -337,7 +340,8 @@ async def guess_chart_handler(group_id, matcher: Matcher, question_clip_path, an
     random_music = total_list.by_id(random_music_id)
     
     gameplay_list.pop(group_id)  # 需要先pop，不然的话发了答案之后还能猜
-    reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的原片段如下："
+    if random_music:
+        reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的原片段如下："
     await matcher.send(reply_message, reply_message=True)
     if answer_clip_path in loading_clip_list:
         for i in range(31):
@@ -363,7 +367,7 @@ async def make_param_chart_video(group_id, params):
                 return
             await asyncio.sleep(5)
 
-        random_music = filter_random(chart_total_list, params, 1)[0]  # 前面已经做过检验，保证过可以
+        random_music = filter_random(chart_total_list, params, 1)[0]  # type: ignore # 前面已经做过检验，保证过可以
         random_music_id = random_music.id
 
         music_mp4_file = id_mp4_file_map[random_music_id]
@@ -399,7 +403,7 @@ async def make_chart_video():
         general_charts_pool.append((clip_path, answer_clip_path))
     
 
-async def init_chart_pool_by_existing_files(root_directory, pool: List, force = False):
+async def init_chart_pool_by_existing_files(root_directory, pool: list, force = False):
     os.makedirs(root_directory, exist_ok=True)
     question_pattern = re.compile(r"(\d+)_([\d\.]+)_clip\.mp4")
     answer_pattern = re.compile(r"(\d+)_([\d\.]+)_answer_clip\.mp4")
@@ -497,6 +501,8 @@ async def init_chart_guess_info():
     global id_music_map
     for dirpath, dirnames, filenames in os.walk(chart_file_path):
         for file in filenames:
+            if file.startswith('.'):
+                continue  # 忽略隐藏文件（针对mac自动生成的.DS_Store文件）
             file_id = os.path.splitext(file)[0]
             if "remaster" in dirpath:
                 file_id = str(500000 + int(file_id))
@@ -512,6 +518,9 @@ async def init_chart_guess_info():
         if int(id) > 500000:
             # 白谱处理，将白谱的内容（定数、谱面信息等全部顶到紫谱的位置）
             new_music.id = id
+            if len(new_music.ds) < 5:
+                # 白谱资源提前准备好了，而music_data.json还未有白谱上线，则需要跳过
+                continue
             new_music.ds[3] = new_music.ds[4]
             new_music.level[3] = new_music.level[4]
             new_music.cids[3] = new_music.cids[4]
@@ -525,7 +534,4 @@ async def init_chart_guess_info():
             new_music.charts.pop(4)
         chart_total_list.append(new_music)
         
-    
-asyncio.run(init_chart_guess_info())
-asyncio.run(init_chart_pool_by_existing_files(chart_preload_path, general_charts_pool, True))
 scheduler.add_job(make_chart_video, 'interval', seconds=PRELOAD_CHECK_TIME)

@@ -1,13 +1,15 @@
 import random
 import asyncio
 from pydub import AudioSegment # 请注意，这里还需要ffmpeg，请自行安装
+import os
 
-from .utils import *
+from .utils import Music, get_top_three, record_game_success, check_game_disable, isplayingcheck, fault_tips, filter_random, song_txt, get_music_file_path, convert_to_absolute_path
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, continuous_stop
+from ..config import *
 
-from nonebot import on_fullmatch, on_command
+from nonebot import on_command
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent, MessageSegment
 from nonebot.params import CommandArg
 from nonebot.permission import SUPERUSER
 
@@ -16,7 +18,7 @@ guess_listen = on_command("听歌猜曲", aliases={"听歌辩曲"}, priority=5)
 continuous_guess_listen = on_command('连续听歌猜曲', priority=5)
 check_listen_file_completeness = on_command("检查歌曲文件完整性", permission=SUPERUSER, priority=5)
 
-listen_total_list: List[Music] = []
+listen_total_list: list[Music] = []
 
 def extract_random_clip(music_file, duration_ms=10000):
     song = AudioSegment.from_file(music_file)
@@ -46,12 +48,13 @@ def listen_rank_message(group_id):
 
 async def listen_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag):
     '''开歌处理函数'''
-    listen_info = gameplay_list.get(group_id).get("listen")
+    listen_info = gameplay_list[group_id]["listen"]
     music_candidates = alias_dict.get(song_name)
     if music_candidates is None:
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名", reply_message=True)
+        return
     
     if len(music_candidates) < 20:
         for music_index in music_candidates:
@@ -172,6 +175,3 @@ async def init_listen_guess_list():
         music_file_name = str(music_file_name)
         if music_file_name in mp3_files:
             listen_total_list.append(music)
-            
-
-asyncio.run(init_listen_guess_list())

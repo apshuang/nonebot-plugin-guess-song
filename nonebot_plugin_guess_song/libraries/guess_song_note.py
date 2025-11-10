@@ -1,20 +1,18 @@
-import re
-import copy
 import random
-import shutil
 import asyncio
 import subprocess
+import logging
+import os
 
-from .utils import *
+from .utils import seconds_to_hms, get_top_three, record_game_success, song_txt, check_game_disable, isplayingcheck, filter_random, fault_tips, get_video_duration
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, continuous_stop
 from .guess_song_chart import chart_total_list, id_mp4_file_map, id_mp3_file_map
+from ..config import *
 
-from nonebot import on_fullmatch, on_command
-from nonebot.plugin import require
+from nonebot import on_command
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
-from nonebot.permission import SUPERUSER
-from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Message, GroupMessageEvent, MessageSegment
 
 
 CLIP_DURATION = 30
@@ -55,7 +53,7 @@ def note_rank_message(group_id):
 
 async def note_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag):
     '''开歌处理函数'''
-    (answer_music, start_time) = gameplay_list.get(group_id).get("note")
+    (answer_music, start_time) = gameplay_list[group_id]["note"]
     random_music_id = answer_music.id
     is_remaster = False
     if int(random_music_id) > 500000:
@@ -69,11 +67,12 @@ async def note_open_song_handler(matcher, song_name, group_id, user_id, ignore_t
         if ignore_tag:
             return
         await matcher.finish("没有找到这样的乐曲。请输入正确的名称或别名", reply_message=True)
+        return
     
     if len(music_candidates) < 20:
         for music_index in music_candidates:
             music = total_list.music_list[music_index]
-            if random_music.id == music.id:
+            if random_music and random_music.id == music.id:
                 gameplay_list.pop(group_id)
                 record_game_success(user_id=user_id, group_id=group_id, game_type="note")
                 reply_message = MessageSegment.text("恭喜你猜对啦！答案就是：\n") + song_txt(random_music, is_remaster) + "\n对应的片段如下："
@@ -88,7 +87,7 @@ async def note_open_song_handler(matcher, song_name, group_id, user_id, ignore_t
         
 
 @guess_note.handle()
-async def note_guess_handler(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
+async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandArg()):
     group_id = str(event.group_id)
     game_name = "note"
     if check_game_disable(group_id, game_name):
@@ -130,7 +129,7 @@ async def note_guess_handler(group_id, matcher: Matcher, args):
         await matcher.finish(fault_tips, reply_message=True)
     input_path = id_mp4_file_map.get(random_music.id)
     video_duration = get_video_duration(input_path)
-    if CLIP_DURATION > video_duration - 15:
+    if not video_duration or CLIP_DURATION > video_duration - 15:
         raise ValueError(f"截取时长不能超过视频总时长减去15秒")
     
     start_time = random.uniform(5, video_duration - CLIP_DURATION - 10)
@@ -163,7 +162,8 @@ async def note_guess_handler(group_id, matcher: Matcher, args):
         is_remaster = True
     random_music = total_list.by_id(random_music_id)
     gameplay_list.pop(group_id)
-    reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的片段如下："
+    if random_music:
+        reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的片段如下："
     await matcher.send(reply_message)
     answer_input_path = id_mp3_file_map.get(answer_music_id)  # 这个是旧的id，即白谱应该找回白谱的id
     answer_output_path: Path = guess_resources_path / f"{group_id}_{start_time}_answer.mp3"

@@ -6,7 +6,6 @@ from nonebot import get_plugin_config
 from nonebot.plugin import require
 
 require("nonebot_plugin_localstore")
-
 import nonebot_plugin_localstore as store
 
 
@@ -72,10 +71,12 @@ plate_to_version: dict[str, str] = {
     '星': 'maimai でらっくす UNiVERSE PLUS',
     '祭': 'maimai でらっくす FESTiVAL',
     '祝': 'maimai でらっくす FESTiVAL PLUS',
-    '双': 'maimai でらっくす BUDDiES'
+    '双': 'maimai でらっくす BUDDiES',
+    '宴': 'maimai でらっくす BUDDiES PLUS',
+    '镜': 'maimai でらっくす PRiSM'
 }
 
-labelmap = {'华': '熊', '華': '熊', '煌': '爽', '星': '宙', '祝': '祭'} #国服特供
+labelmap = {'华': '熊', '華': '熊', '煌': '爽', '星': '宙', '祝': '祭', '宴': '双'} #国服特供
 category: dict[str, str] = {
     '流行&动漫': 'anime',
     '舞萌': 'maimai',
@@ -277,7 +278,8 @@ charterlist: dict[str, list[str]] = {
         "脆脆鲨",       #翠楼屋 + 沙发太
         "ボコ太",
         "鳩サファzhel",
-        "Ruby"          #squad谱师 = 沙发太
+        "Ruby",          #squad谱师 = 沙发太
+        "project raputa"    #沙发太+翠楼屋
     ],
     "23": [
         "隅田川星人",
@@ -318,7 +320,8 @@ charterlist: dict[str, list[str]] = {
         "サファ太 vs 翠楼屋",
         "翡翠マナ -Memoir-",
         "脆脆鲨",
-        "Ruby"
+        "Ruby",
+        "project raputa"    #沙发太+翠楼屋
     ],
     "29": [
         "鸽子",
@@ -359,7 +362,8 @@ charterlist: dict[str, list[str]] = {
         "あまくちジンジャー",
         "あまくちヘルツ",
         "翠楼屋 vs あまくちジンジャー",
-        "Jack vs あまくちジンジャー"
+        "Jack vs あまくちジンジャー",
+        "EL DiABLO" #阿波罗
     ],
     "35": [
         "カマボコ君",
