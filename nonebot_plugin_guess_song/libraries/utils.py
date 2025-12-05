@@ -1,16 +1,14 @@
 import os
 import json
-from datetime import datetime
 from io import BytesIO
 import base64
-from PIL import Image
-from typing import Union, Optional
 import random
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
 import logging
+import re
 
-from .music_model import *
+from .music_model import Music, continuous_stop, gameplay_list, game_alias_map, total_list, music_cover_path, music_file_path
 from ..config import *
 
 from nonebot.adapters.onebot.v11 import Message, MessageSegment, Bot
@@ -68,10 +66,9 @@ def song_txt(music: Music, is_remaster: bool = False):
         f"定数：{'/'.join(map(str, music.ds))}"
     )
     pic_path = music_cover_path / (get_cover_len5_id(music.id) + ".png")
-    #print(pic_path)
     return [
         MessageSegment.image(f"file://{pic_path}"), 
-        MessageSegment("text", {"text": output})]
+        MessageSegment.text(output)]
     
     
 def image_to_base64(img: Image.Image, format='PNG') -> str:
@@ -158,7 +155,8 @@ def load_game_data_json(gid: str):
             "cover": {},
             "clue": {},
             "chart": {},
-            "note": {}
+            "note": {},
+            "maidle": {}
         },
         "game_enable": {
             "listen": True,
@@ -167,7 +165,8 @@ def load_game_data_json(gid: str):
             "clue": True,
             "chart": True,
             "random": True,
-            "note": True
+            "note": True,
+            "maidle": True
         }
     })
     data[gid].setdefault('config', {
@@ -183,7 +182,8 @@ def load_game_data_json(gid: str):
             "cover": {},
             "clue": {},
             "chart": {},
-            "note": {}
+            "note": {},
+            "maidle": {}
         })
     data[gid].setdefault('game_enable', {
             "listen": True,
@@ -192,7 +192,8 @@ def load_game_data_json(gid: str):
             "clue": True,
             "chart": True,
             "random": True,
-            "note": True
+            "note": True,
+            "maidle": True
         })
     data[gid]['config'].setdefault('gauss', 10)
     data[gid]['config'].setdefault('cut', 0.5)
@@ -205,6 +206,7 @@ def load_game_data_json(gid: str):
     data[gid]['rank'].setdefault("clue", {})
     data[gid]['rank'].setdefault("chart", {})
     data[gid]['rank'].setdefault("note", {})
+    data[gid]['rank'].setdefault("maidle", {})
     data[gid]['game_enable'].setdefault("listen", True)
     data[gid]['game_enable'].setdefault("open_character", True)
     data[gid]['game_enable'].setdefault("cover", True)
@@ -212,6 +214,7 @@ def load_game_data_json(gid: str):
     data[gid]['game_enable'].setdefault("chart", True)
     data[gid]['game_enable'].setdefault("random", True)
     data[gid]['game_enable'].setdefault("note", True)
+    data[gid]['game_enable'].setdefault("maidle", True)
     return data
 
 async def isplayingcheck(gid, matcher: Matcher):
@@ -219,11 +222,11 @@ async def isplayingcheck(gid, matcher: Matcher):
     if continuous_stop.get(gid) is not None:
         await matcher.finish(f"当前正在运行连续猜歌，可以发送\"停止\"来结束连续猜歌", reply_message=True)
     if gameplay_list.get(gid) is not None:
-        now_playing_game = game_alias_map.get(list(gameplay_list.get(gid).keys())[0])
+        now_playing_game = game_alias_map.get(list(gameplay_list[gid].keys())[0])
         await matcher.finish(f"当前有一个{now_playing_game}正在运行，可以发送\"不玩了\"来结束游戏并公布答案", reply_message=True)
 
 
-def filter_random(data: list[Music], args: list[str], cnt: int = 1) -> Union[list[Music], None]:
+def filter_random(data: list[Music], args: list[str], cnt: int = 1) -> list[Music]|None:
     filters = {'other': []}
     flip_filters = {'other': []}
     for param in args:
@@ -260,6 +263,9 @@ def filter_random(data: list[Music], args: list[str], cnt: int = 1) -> Union[lis
 fault_tips = f'参数错误，可能是满足条件的歌曲数不足或格式错误，可用“/猜歌帮助”命令获取帮助哦！'
 
 def matchparam(param: str, filters: dict) -> bool:
+    param = param.replace("＜", "<")
+    param = param.replace("＞", ">")
+    param = param.replace("＝", "=")
     try:
         if _ := b50listb.get(param):      #过滤参数
             filters['other'].append(_)
@@ -402,7 +408,7 @@ def text_to_image(text: str) -> Image.Image:
         max_width = max(max_width, r)
     wa = max_width + padding * 2
     ha = b * len(lines) + margin * (len(lines) - 1) + padding * 2
-    im = Image.new('RGB', (wa, ha), color=(255, 255, 255))
+    im = Image.new('RGB', (wa, ha), color=(255, 255, 255)) # type: ignore
     draw = ImageDraw.Draw(im)
     for index, line in enumerate(lines):
         draw.text((padding, padding + index * (margin + b)), line, font=font, fill=(0, 0, 0))

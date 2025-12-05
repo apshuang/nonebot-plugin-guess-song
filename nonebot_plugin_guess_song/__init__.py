@@ -44,7 +44,7 @@ async def _():
 def is_now_playing_game(event: GroupMessageEvent) -> bool:
     return gameplay_list.get(str(event.group_id)) is not None
 
-open_song = on_startswith(("开歌","猜歌"), priority=3, ignorecase=True, block=True, rule=is_now_playing_game)
+open_song = on_startswith(("开歌","猜歌", "/开歌", "/猜歌"), priority=3, ignorecase=True, block=True, rule=is_now_playing_game)
 open_song_without_prefix = on_message(rule=is_now_playing_game, priority=10)
 stop_game = on_fullmatch(("不玩了", "不猜了"), priority=5)
 stop_game_force = on_fullmatch("强制停止", priority=5)
@@ -79,7 +79,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
         await matcher.finish(f"本群禁用了{game_alias_map[game_name]}游戏，请联系管理员使用“/开启猜歌 {game_alias_map[game_name]}”来开启游戏吧！")
     params = args.extract_plain_text().strip().split()
     await isplayingcheck(group_id, matcher)
-    choice = random.randint(1, 4)
+    choice = random.randint(1, 5)
     if choice == 1:
         await guess_cover_handler(group_id, matcher, params)
     elif choice == 2:
@@ -89,6 +89,8 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
     elif choice == 4:
         await guess_chart_request(event, matcher, args)
     elif choice == 5:
+        await maidle_guess_handler(group_id, matcher, params)
+    elif choice == 6:
         await note_guess_handler(group_id, matcher, params)
 
 @continuous_guess_random.handle()
@@ -135,7 +137,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
     
     while continuous_stop.get(group_id):
         if gameplay_list.get(group_id) is None:
-            choice = random.randint(1, 4)
+            choice = random.randint(1, 5)
             if choice == 1:
                 await guess_cover_handler(group_id, matcher, params)
             elif choice == 2:
@@ -156,6 +158,9 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 await guess_chart_handler(group_id, matcher, question_clip_path, answer_clip_path, params)
                 await asyncio.sleep(2)
             elif choice == 5:
+                await maidle_guess_handler(group_id, matcher, params)
+                await asyncio.sleep(2)
+            elif choice == 6:
                 await note_guess_handler(group_id, matcher, params)
                 await asyncio.sleep(2)
         if continuous_stop[group_id] > 3:
@@ -164,6 +169,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher, args: Message = CommandA
                 groupID_params_map.pop(group_id)
             await matcher.finish('没人猜了？ 那我下班了。')
         await asyncio.sleep(1)
+
 
 async def open_song_dispatcher(matcher: Matcher, song_name, user_id, group_id, ignore_tag=False):
     if gameplay_list[group_id].get("open_character"):
@@ -178,6 +184,8 @@ async def open_song_dispatcher(matcher: Matcher, song_name, user_id, group_id, i
         await chart_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
     elif gameplay_list[group_id].get("note"):
         await note_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
+    elif gameplay_list[group_id].get("maidle"):
+        await maidle_open_song_handler(matcher, song_name, group_id, user_id, ignore_tag)
 
 @open_song.handle()
 async def open_song_handler(event: GroupMessageEvent, matcher: Matcher, start: str = Startswith()):
@@ -237,7 +245,7 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
             charts_save_list.append(answer_clip_path)  # 但是必须先把它保护住，否则有可能发到一半被删掉
             if random_music:
                 reply_message = MessageSegment.text("很遗憾，你没有猜到答案，正确的答案是：\n") + song_txt(random_music, is_remaster) + "\n对应的原片段如下："
-            await matcher.send(reply_message, reply_message=True)
+                await matcher.send(reply_message, reply_message=True)
             if answer_clip_path in loading_clip_list:
                 for i in range(31):
                     await asyncio.sleep(1)
@@ -267,6 +275,17 @@ async def _(event: GroupMessageEvent, matcher: Matcher):
             await asyncio.to_thread(make_note_sound, answer_input_path, start_time, answer_output_path)
             await matcher.send(MessageSegment.record(f"file://{answer_output_path}"))
             os.remove(answer_output_path)
+        elif now_playing_game == "maidle":
+            maidle_info = gameplay_list[group_id]["maidle"]
+            answer_music = maidle_info["answer"]
+            gameplay_list.pop(group_id)
+            stats = generate_statistics(maidle_info, is_success=False)
+            reply_message = [MessageSegment.text(f"很遗憾，你没有猜到答案！\n正确答案是：\n")]
+            reply_message.extend(song_txt(answer_music))
+            if stats:
+                reply_message.append(MessageSegment.text("\n\n"))
+                reply_message.extend(stats)
+            await matcher.finish(Message(reply_message), reply_message=True)
 
 @stop_continuous.handle()
 async def _(event: GroupMessageEvent, matcher: Matcher):
@@ -317,8 +336,9 @@ async def send_top_three(bot, group_id, isaddcredit = False, is_force = False):
     clue_msg = clue_rank_message(group_id)
     chart_msg = chart_rank_message(group_id)
     note_msg = note_rank_message(group_id)
+    maidle_msg = maidle_rank_message(group_id)
     
-    origin_messages = [char_msg, listen_msg, cover_msg, clue_msg, chart_msg, note_msg]
+    origin_messages = [char_msg, listen_msg, cover_msg, clue_msg, chart_msg, note_msg, maidle_msg]
     if isaddcredit:
         origin_messages.extend(add_credit_message(group_id))
     if is_force:
@@ -391,5 +411,5 @@ async def send_top_three_schedule():
 async def reset_game_data():
     data = load_data(game_data_path)
     for gid in data.keys():
-        data[gid]['rank'] = {"listen": {}, "open_character": {},"cover": {}, "clue": {}, "chart": {}, "note": {}}
+        data[gid]['rank'] = {"listen": {}, "open_character": {},"cover": {}, "clue": {}, "chart": {}, "note": {}, "maidle": {}}
     save_game_data(data, game_data_path)

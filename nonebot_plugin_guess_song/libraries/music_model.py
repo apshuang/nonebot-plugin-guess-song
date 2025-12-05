@@ -135,6 +135,7 @@ game_alias_map = {
     "chart" : "谱面猜歌",
     "random" : "随机猜歌",
     "note": "note音猜歌",
+    "maidle": "maidle",
 }
 
 game_alias_map_reverse = {
@@ -145,6 +146,7 @@ game_alias_map_reverse = {
     "谱面猜歌" : "chart",
     "随机猜歌" : "random",
     "note音猜歌": "note",
+    "maidle": "maidle",
 }   
 
 init_music_names()
