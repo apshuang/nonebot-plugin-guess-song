@@ -2,6 +2,7 @@ import random
 import asyncio
 from pydub import AudioSegment # 请注意，这里还需要ffmpeg，请自行安装
 import os
+from pathlib import Path
 
 from .utils import Music, get_top_three, record_game_success, check_game_disable, isplayingcheck, fault_tips, filter_random, song_txt, get_music_file_path, convert_to_absolute_path
 from .music_model import gameplay_list, game_alias_map, alias_dict, total_list, continuous_stop
@@ -119,8 +120,8 @@ async def listen_guess_handler(group_id, matcher: Matcher, args):
 
     clip = extract_random_clip(music_file)
     
-    output_file = f"./{group_id}clip.mp3"
-    output_file = convert_to_absolute_path(output_file)
+    output_file: Path = guess_resources_path / f"{group_id}_clip.mp3"
+    # output_file = convert_to_absolute_path(output_file)
     save_clip_as_audio(clip, output_file)
 
     # 发送语音到群组
