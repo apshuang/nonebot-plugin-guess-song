@@ -36,7 +36,8 @@ VERSION_LIST = [
     "maimai でらっくす UNiVERSE",
     "maimai でらっくす FESTiVAL",
     "maimai でらっくす BUDDiES",
-    "maimai でらっくす PRiSM"
+    "maimai でらっくす PRiSM",
+    "maimai でらっくす PRiSM PLUS"
 ]
 
 

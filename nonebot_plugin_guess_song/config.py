@@ -74,7 +74,8 @@ plate_to_version: dict[str, str] = {
     '祝': 'maimai でらっくす FESTiVAL PLUS',
     '双': 'maimai でらっくす BUDDiES',
     '宴': 'maimai でらっくす BUDDiES PLUS',
-    '镜': 'maimai でらっくす PRiSM'
+    '镜': 'maimai でらっくす PRiSM',
+    "彩": "maimai でらっくす PRiSM PLUS"
 }
 
 labelmap = {'华': '熊', '華': '熊', '煌': '爽', '星': '宙', '祝': '祭', '宴': '双'} #国服特供
