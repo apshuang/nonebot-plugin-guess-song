@@ -17,6 +17,9 @@ game_config = get_plugin_config(Config)
 
 plugin_data_dir: Path = store.get_plugin_data_dir()
 
+# 随插件保存的帮助图；缺失时使用下方 guess_help_message 原文转图。
+guess_help_image_path: Path = Path(__file__).resolve().parent / "help.png"
+
 guess_static_resources_path: Path = plugin_data_dir / "static"
 guess_resources_path: Path = plugin_data_dir / "resources"
 

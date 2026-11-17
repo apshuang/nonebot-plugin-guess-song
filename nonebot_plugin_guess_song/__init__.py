@@ -52,14 +52,19 @@ stop_continuous = on_fullmatch('停止', priority=5)
 top_three = on_command('前三', priority=5)
 guess_random = on_command('随机猜歌', priority=5)
 continuous_guess_random = on_command('连续随机猜歌', priority=5)
-help_guess = on_command('猜歌帮助', priority=5)
+# 先于「猜歌」前缀匹配，避免游戏中把求助当作答案；群聊与私聊均可用。
+help_guess = on_command('猜歌帮助', priority=2, block=True)
 charter_names = on_command('查看谱师', priority=5)
 enable_guess_game = on_command('开启猜歌', priority=5, permission=GROUP_ADMIN | GROUP_OWNER | SUPERUSER)
 disable_guess_game = on_command('关闭猜歌', priority=5, permission=GROUP_ADMIN | GROUP_OWNER | SUPERUSER)
 
 @help_guess.handle()
-async def _(matcher: Matcher):
-    await matcher.finish(MessageSegment.image(to_bytes_io(guess_help_message)))
+async def handle_guess_help(matcher: Matcher):
+    try:
+        image = await asyncio.to_thread(guess_help_image_path.read_bytes)
+    except FileNotFoundError:
+        image = await asyncio.to_thread(to_bytes_io, guess_help_message)
+    await matcher.finish(MessageSegment.image(image))
 
 @charter_names.handle()
 async def _(bot: Bot, event: GroupMessageEvent):
